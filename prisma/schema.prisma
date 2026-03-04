@@ -1,0 +1,102 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  role      Role     @default(PATIENT)
+  createdAt DateTime @default(now())
+
+  // Patient relations
+  readings            SensorReading[]
+  alerts              Alert[]
+  evaluationsReceived Evaluation[]    @relation("PatientEvaluations")
+
+  // Doctor relations
+  evaluationsGiven Evaluation[]    @relation("DoctorEvaluations")
+  assignedPatients PatientDoctor[] @relation("DoctorPatients")
+  assignedDoctors  PatientDoctor[] @relation("PatientDoctors")
+}
+
+enum Role {
+  PATIENT
+  DOCTOR
+  ADMIN
+}
+
+model SensorReading {
+  id          String   @id @default(cuid())
+  patientId   String
+  patient     User     @relation(fields: [patientId], references: [id])
+
+  // From Arduino
+  gsrRaw      Int
+  resistance  Float
+  stressLevel Int
+  stressLabel String
+
+  // Optional (for future MAX30102 integration)
+  heartRate   Int?
+  spo2        Float?
+  temperature Float
+
+  recordedAt DateTime @default(now())
+
+  @@index([patientId, recordedAt])
+}
+
+model Alert {
+  id           String    @id @default(cuid())
+  patientId    String
+  patient      User      @relation(fields: [patientId], references: [id])
+  type         AlertType
+  message      String
+  severity     Int
+  acknowledged Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+}
+
+enum AlertType {
+  HIGH_STRESS
+  PROLONGED_STRESS
+  RAPID_CHANGE
+  TEMPERATURE_ANOMALY
+}
+
+model Evaluation {
+  id              String    @id @default(cuid())
+  patientId       String
+  patient         User      @relation("PatientEvaluations", fields: [patientId], references: [id])
+  doctorId        String
+  doctor          User      @relation("DoctorEvaluations", fields: [doctorId], references: [id])
+  diagnosis       String
+  notes           String
+  recommendations String
+  followUpDate    DateTime?
+  createdAt       DateTime  @default(now())
+}
+
+model PatientDoctor {
+  patientId  String
+  doctorId   String
+  patient    User     @relation("PatientDoctors", fields: [patientId], references: [id])
+  doctor     User     @relation("DoctorPatients", fields: [doctorId], references: [id])
+  assignedAt DateTime @default(now())
+
+  @@id([patientId, doctorId])
+}

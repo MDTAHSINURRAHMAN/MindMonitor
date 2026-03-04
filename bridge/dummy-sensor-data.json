@@ -1,0 +1,48 @@
+{
+  "_comment": "Simulated Arduino sensor readings for development/testing. Each entry mirrors one CSV line from the Arduino serial output. Fields: gsrRaw (0-1023), resistance (Ω), stressLevel (1=Relaxed, 2=Slightly Stressed, 3=Stressed), temperature (°C).",
+
+  "readings": [
+    { "gsrRaw": 410, "resistance": 24390, "stressLevel": 1, "stressLabel": "Relaxed",          "temperature": 36.2 },
+    { "gsrRaw": 425, "resistance": 23529, "stressLevel": 1, "stressLabel": "Relaxed",          "temperature": 36.3 },
+    { "gsrRaw": 438, "resistance": 22831, "stressLevel": 1, "stressLabel": "Relaxed",          "temperature": 36.3 },
+    { "gsrRaw": 460, "resistance": 21739, "stressLevel": 2, "stressLabel": "Slightly Stressed","temperature": 36.5 },
+    { "gsrRaw": 472, "resistance": 21186, "stressLevel": 2, "stressLabel": "Slightly Stressed","temperature": 36.6 },
+    { "gsrRaw": 485, "resistance": 20619, "stressLevel": 2, "stressLabel": "Slightly Stressed","temperature": 36.7 },
+    { "gsrRaw": 501, "resistance": 19960, "stressLevel": 2, "stressLabel": "Slightly Stressed","temperature": 36.8 },
+    { "gsrRaw": 519, "resistance": 19268, "stressLevel": 2, "stressLabel": "Slightly Stressed","temperature": 36.9 },
+    { "gsrRaw": 534, "resistance": 18727, "stressLevel": 3, "stressLabel": "Stressed",         "temperature": 37.0 },
+    { "gsrRaw": 560, "resistance": 17857, "stressLevel": 3, "stressLabel": "Stressed",         "temperature": 37.1 },
+    { "gsrRaw": 578, "resistance": 17301, "stressLevel": 3, "stressLabel": "Stressed",         "temperature": 37.2 },
+    { "gsrRaw": 592, "resistance": 16892, "stressLevel": 3, "stressLabel": "Stressed",         "temperature": 37.4 },
+    { "gsrRaw": 575, "resistance": 17391, "stressLevel": 3, "stressLabel": "Stressed",         "temperature": 37.3 },
+    { "gsrRaw": 550, "resistance": 18182, "stressLevel": 2, "stressLabel": "Slightly Stressed","temperature": 37.1 },
+    { "gsrRaw": 520, "resistance": 19231, "stressLevel": 2, "stressLabel": "Slightly Stressed","temperature": 36.9 },
+    { "gsrRaw": 490, "resistance": 20408, "stressLevel": 2, "stressLabel": "Slightly Stressed","temperature": 36.7 },
+    { "gsrRaw": 455, "resistance": 21978, "stressLevel": 1, "stressLabel": "Relaxed",          "temperature": 36.5 },
+    { "gsrRaw": 430, "resistance": 23256, "stressLevel": 1, "stressLabel": "Relaxed",          "temperature": 36.4 },
+    { "gsrRaw": 415, "resistance": 24096, "stressLevel": 1, "stressLabel": "Relaxed",          "temperature": 36.3 },
+    { "gsrRaw": 400, "resistance": 25000, "stressLevel": 1, "stressLabel": "Relaxed",          "temperature": 36.2 },
+
+    { "_scenario": "temperature anomaly – mild fever", "gsrRaw": 445, "resistance": 22472, "stressLevel": 2, "stressLabel": "Slightly Stressed", "temperature": 38.1 },
+    { "_scenario": "temperature low",                  "gsrRaw": 390, "resistance": 25641, "stressLevel": 1, "stressLabel": "Relaxed",           "temperature": 35.2 },
+    { "_scenario": "borderline high GSR",              "gsrRaw": 610, "resistance": 16393, "stressLevel": 3, "stressLabel": "Stressed",           "temperature": 37.5 },
+    { "_scenario": "max GSR range",                    "gsrRaw": 810, "resistance": 12346, "stressLevel": 3, "stressLabel": "Stressed",           "temperature": 37.6 }
+  ],
+
+  "serial_csv_format": "gsrRaw,resistance,stressLevel,temperature",
+  "serial_examples": [
+    "410,24390,1,36.2",
+    "460,21739,2,36.5",
+    "534,18727,3,37.0",
+    "610,16393,3,37.5"
+  ],
+
+  "api_payload_example": {
+    "patientId":   "replace-with-real-uuid",
+    "gsrRaw":      534,
+    "resistance":  18727.0,
+    "stressLevel": 3,
+    "stressLabel": "Stressed",
+    "temperature": 37.0
+  }
+}
