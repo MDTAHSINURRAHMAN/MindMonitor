@@ -1,24 +1,43 @@
 /**
  * Role-router dashboard.
  * Redirects authenticated users to the appropriate role-specific dashboard.
- * TODO: fetch user role from the database and redirect accordingly.
  */
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
+import { createServerClient } from "@supabase/ssr";
 
 export default async function DashboardPage() {
-  const supabase = createServerComponentClient({ cookies });
+  const cookieStore = await cookies();
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
+          } catch {
+            // Server component — cannot set cookies; middleware handles refresh
+          }
+        },
+      },
+    }
+  );
 
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  if (!session) {
+  if (!user) {
     redirect("/login");
   }
 
-  // TODO: query the user's role from the database once the schema is set up.
-  // For now, redirect to the doctor dashboard as a placeholder.
-  redirect("/doctor/dashboard");
+  const role: string = user.user_metadata?.role ?? "";
+  redirect(role === "DOCTOR" ? "/doctor/dashboard" : "/patient/dashboard");
 }

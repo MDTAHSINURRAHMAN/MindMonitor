@@ -4,8 +4,90 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
-import { Eye, EyeOff, Lock, Mail, Activity } from "lucide-react";
+import {
+  Eye, EyeOff, Lock, Mail, Activity,
+  ArrowRight, CheckCircle2, AlertCircle, Shield,
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
+// ── Floating orb (matches landing page) ──────────────────────
+function FloatingOrb({ style, delay }: { style: React.CSSProperties; delay: number }) {
+  return (
+    <motion.div
+      className="pointer-events-none absolute rounded-full blur-3xl"
+      style={style}
+      animate={{ y: [0, -24, 0], scale: [1, 1.04, 1] }}
+      transition={{ duration: 7, delay, repeat: Infinity, ease: "easeInOut" }}
+    />
+  );
+}
+
+// ── Animated input wrapper ────────────────────────────────────
+interface InputFieldProps {
+  id: string;
+  label: string;
+  type: string;
+  autoComplete: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+  icon: React.ReactNode;
+  delay: number;
+  rightSlot?: React.ReactNode;
+}
+function InputField({
+  id, label, type, autoComplete, value, onChange,
+  placeholder, icon, delay, rightSlot,
+}: InputFieldProps) {
+  const [focused, setFocused] = useState(false);
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -16 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.45, delay, ease: "easeOut" }}
+    >
+      <label htmlFor={id} className="block text-xs font-semibold text-white/50 uppercase tracking-widest mb-2">
+        {label}
+      </label>
+      <div className="relative group">
+        {/* glow ring on focus */}
+        <AnimatePresence>
+          {focused && (
+            <motion.span
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="pointer-events-none absolute inset-0 rounded-xl ring-2 ring-violet-500/60 shadow-[0_0_18px_rgba(139,92,246,0.35)]"
+            />
+          )}
+        </AnimatePresence>
+        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-violet-400 transition-colors duration-200">
+          {icon}
+        </span>
+        <input
+          id={id}
+          type={type}
+          autoComplete={autoComplete}
+          required
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          placeholder={placeholder}
+          className="w-full pl-10 pr-10 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/20 text-sm focus:outline-none transition-colors duration-200"
+        />
+        {rightSlot && (
+          <span className="absolute right-3.5 top-1/2 -translate-y-1/2">
+            {rightSlot}
+          </span>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+// ── Login form (needs Suspense for useSearchParams) ───────────
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -16,7 +98,6 @@ function LoginForm() {
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
   const [loading, setLoading] = useState(false);
-
 
   useEffect(() => {
     if (searchParams.get("registered") === "1") {
@@ -39,7 +120,6 @@ function LoginForm() {
     if (authError) {
       const msg = authError.message ?? "";
       if (msg.toLowerCase().includes("email not confirmed")) {
-        // Auto-confirm the email server-side and retry sign-in once
         const confirmRes = await fetch("/api/auth/confirm-email", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -54,12 +134,10 @@ function LoginForm() {
             return;
           }
           const role: string = retryData.user?.user_metadata?.role ?? "PATIENT";
-          const dest = role === "DOCTOR" ? "/doctor/dashboard" : "/patient/dashboard";
           router.refresh();
-          router.push(dest);
+          router.push(role === "DOCTOR" ? "/doctor/dashboard" : "/patient/dashboard");
           return;
         }
-        // confirm-email call itself failed — fall through to generic error
         setError("Sign-in failed. Please check your credentials.");
       } else if (
         msg.toLowerCase().includes("rate limit") ||
@@ -74,124 +152,229 @@ function LoginForm() {
     }
 
     const role: string = data.user?.user_metadata?.role ?? "PATIENT";
-    const dest = role === "DOCTOR" ? "/doctor/dashboard" : "/patient/dashboard";
     router.refresh();
-    router.push(dest);
+    router.push(role === "DOCTOR" ? "/doctor/dashboard" : "/patient/dashboard");
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950 px-4">
-      <div className="w-full max-w-md">
-        {/* Brand */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-blue-600 mb-4">
-            <Activity className="w-7 h-7 text-white" />
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">MindGuard</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Mental Health Monitoring Platform
-          </p>
-        </div>
+    <main className="relative isolate min-h-screen flex items-center justify-center overflow-hidden bg-gray-950 px-4 py-16">
 
-        {/* Card */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 p-8">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
-            Welcome back
-          </h2>
+      {/* ── background orbs (landing-page matching) ── */}
+      <FloatingOrb style={{ width: 520, height: 520, top: "-12%", left: "-10%", background: "rgba(139,92,246,0.16)" }} delay={0} />
+      <FloatingOrb style={{ width: 380, height: 380, bottom: "4%", right: "-8%", background: "rgba(56,189,248,0.12)" }} delay={2.5} />
+      <FloatingOrb style={{ width: 260, height: 260, top: "38%", right: "12%", background: "rgba(244,63,94,0.09)" }} delay={5} />
+
+      {/* ── subtle grid ── */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.04]"
+        style={{
+          backgroundImage:
+            "linear-gradient(rgba(255,255,255,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.4) 1px, transparent 1px)",
+          backgroundSize: "40px 40px",
+        }}
+      />
+
+      {/* ── page content ── */}
+      <div className="relative z-10 w-full max-w-md">
+
+        {/* Brand */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.55, ease: "easeOut" }}
+          className="flex flex-col items-center mb-10"
+        >
+          <motion.div
+            whileHover={{ scale: 1.08 }}
+            transition={{ type: "spring", stiffness: 300, damping: 18 }}
+            className="relative mb-5"
+          >
+            <div className="w-16 h-16 rounded-2xl bg-violet-500/15 border border-violet-500/30 ring-1 ring-violet-500/20 backdrop-blur-md flex items-center justify-center shadow-[0_0_32px_rgba(139,92,246,0.25)]">
+              <Activity className="w-8 h-8 text-violet-400" />
+            </div>
+            <motion.div
+              className="absolute inset-0 rounded-2xl bg-violet-500/10"
+              animate={{ opacity: [0.4, 0.9, 0.4] }}
+              transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+            />
+          </motion.div>
+          <h1 className="text-2xl font-bold text-white tracking-tight">MindGuard</h1>
+          <p className="text-sm text-white/40 mt-1 tracking-wide">Mental Health Monitoring Platform</p>
+        </motion.div>
+
+        {/* ── glassmorphism card ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 32, scale: 0.97 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.55, delay: 0.1, ease: "easeOut" }}
+          className="relative overflow-hidden rounded-2xl bg-white/4 backdrop-blur-2xl border border-white/10 ring-1 ring-white/5 p-8 shadow-[0_32px_80px_rgba(0,0,0,0.5)]"
+        >
+          {/* card inner glow */}
+          <div className="pointer-events-none absolute -top-24 -right-24 h-48 w-48 rounded-full blur-3xl opacity-15 bg-violet-500" />
+          <div className="pointer-events-none absolute -bottom-20 -left-20 h-40 w-40 rounded-full blur-3xl opacity-10 bg-sky-500" />
+
+          {/* heading */}
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.25 }}
+            className="mb-7"
+          >
+            <div className="inline-flex items-center gap-2 rounded-full border border-violet-500/25 bg-violet-500/10 px-3 py-1 text-[11px] font-semibold text-violet-300 uppercase tracking-widest mb-4">
+              <Shield className="w-3 h-3" />
+              Secure Sign-in
+            </div>
+            <h2 className="text-2xl font-bold text-white leading-tight">Welcome back</h2>
+            <p className="text-sm text-white/40 mt-1">Sign in to your MindGuard account</p>
+          </motion.div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
+
             {/* Email */}
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
-              >
-                Email address
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  id="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="you@example.com"
-                />
-              </div>
-            </div>
+            <InputField
+              id="email"
+              label="Email address"
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={setEmail}
+              placeholder="you@example.com"
+              icon={<Mail className="w-4 h-4" />}
+              delay={0.3}
+            />
 
             {/* Password */}
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
-              >
-                Password
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  autoComplete="current-password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-10 py-2.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="••••••••"
-                />
+            <InputField
+              id="password"
+              label="Password"
+              type={showPassword ? "text" : "password"}
+              autoComplete="current-password"
+              value={password}
+              onChange={setPassword}
+              placeholder="••••••••"
+              icon={<Lock className="w-4 h-4" />}
+              delay={0.38}
+              rightSlot={
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                  className="text-white/30 hover:text-white/70 transition-colors"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
-                  {showPassword ? (
-                    <EyeOff className="w-4 h-4" />
-                  ) : (
-                    <Eye className="w-4 h-4" />
-                  )}
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
-              </div>
-            </div>
+              }
+            />
 
-            {/* Info banner */}
-            {info && (
-              <div className="rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 px-4 py-3 text-sm text-green-700 dark:text-green-400">
-                {info}
-              </div>
-            )}
-
-            {/* Error banner */}
-            {error && (
-              <div className="rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 px-4 py-3 text-sm text-red-700 dark:text-red-400">
-                {error}
-              </div>
-            )}
+            {/* Banners */}
+            <AnimatePresence mode="wait">
+              {info && (
+                <motion.div
+                  key="info"
+                  initial={{ opacity: 0, y: -8, height: 0 }}
+                  animate={{ opacity: 1, y: 0, height: "auto" }}
+                  exit={{ opacity: 0, y: -8, height: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="flex items-start gap-3 rounded-xl bg-emerald-500/10 border border-emerald-500/25 px-4 py-3 text-sm text-emerald-300"
+                >
+                  <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" />
+                  {info}
+                </motion.div>
+              )}
+              {error && (
+                <motion.div
+                  key="error"
+                  initial={{ opacity: 0, y: -8, height: 0 }}
+                  animate={{ opacity: 1, y: 0, height: "auto" }}
+                  exit={{ opacity: 0, y: -8, height: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="flex items-start gap-3 rounded-xl bg-rose-500/10 border border-rose-500/25 px-4 py-3 text-sm text-rose-300"
+                >
+                  <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                  {error}
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Submit */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-2.5 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-medium text-sm transition-colors"
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.48 }}
             >
-              {loading ? "Signing in…" : "Sign in"}
-            </button>
+              <motion.button
+                type="submit"
+                disabled={loading}
+                whileHover={loading ? {} : { scale: 1.02, boxShadow: "0 0 28px rgba(139,92,246,0.45)" }}
+                whileTap={loading ? {} : { scale: 0.98 }}
+                transition={{ type: "spring", stiffness: 300, damping: 18 }}
+                className="relative w-full py-3 px-4 rounded-xl bg-linear-to-r from-violet-600 to-violet-500 hover:from-violet-500 hover:to-violet-400 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-sm overflow-hidden transition-all duration-200 shadow-[0_4px_24px_rgba(139,92,246,0.35)]"
+              >
+                <AnimatePresence mode="wait">
+                  {loading ? (
+                    <motion.span
+                      key="loading"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="flex items-center justify-center gap-2"
+                    >
+                      <motion.span
+                        className="inline-block w-4 h-4 rounded-full border-2 border-white/30 border-t-white"
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
+                      />
+                      Signing in…
+                    </motion.span>
+                  ) : (
+                    <motion.span
+                      key="idle"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="flex items-center justify-center gap-2"
+                    >
+                      Sign in
+                      <ArrowRight className="w-4 h-4" />
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </motion.button>
+            </motion.div>
           </form>
 
-          <p className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
-            Don&apos;t have an account?{" "}
+          {/* Divider */}
+          <div className="mt-7 flex items-center gap-4">
+            <div className="flex-1 h-px bg-white/8" />
+            <span className="text-xs text-white/25 whitespace-nowrap">New to MindGuard?</span>
+            <div className="flex-1 h-px bg-white/8" />
+          </div>
+
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.6, duration: 0.4 }}
+            className="mt-5"
+          >
             <Link
               href="/register"
-              className="font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+              className="group flex items-center justify-center gap-2 w-full py-3 rounded-xl border border-white/10 bg-white/3 hover:bg-white/7 hover:border-violet-500/40 text-white/60 hover:text-white text-sm font-medium transition-all duration-200"
             >
-              Create one
+              Create an account
+              <ArrowRight className="w-3.5 h-3.5 -translate-x-0.5 group-hover:translate-x-0.5 transition-transform duration-200" />
             </Link>
-          </p>
-        </div>
+          </motion.div>
+        </motion.div>
+
+        {/* Footer note */}
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.7, duration: 0.4 }}
+          className="text-center text-xs text-white/20 mt-6"
+        >
+          Protected by end-to-end encryption &amp; secure auth
+        </motion.p>
       </div>
     </main>
   );
