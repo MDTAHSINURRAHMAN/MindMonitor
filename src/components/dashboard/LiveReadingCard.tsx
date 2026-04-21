@@ -5,8 +5,19 @@ import { Activity, Thermometer, Zap } from 'lucide-react';
 
 export interface SensorReading {
   id: string;
+  sessionId?: string | null;
+  deviceId?: string | null;
   recordedAt: string;
   gsrRaw: number;
+  gsrBaseline?: number | null;
+  gsrDiff?: number | null;
+  ir?: number | null;
+  red?: number | null;
+  fingerDetected?: boolean | null;
+  skinDetected?: boolean | null;
+  stressScore?: number | null;
+  status?: string | null;
+  sourceTimestampMs?: string | null;
   resistance: number;
   stressLevel: number;
   stressLabel: string;

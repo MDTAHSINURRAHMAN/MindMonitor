@@ -48,6 +48,9 @@ model SensorReading {
   id          String   @id @default(cuid())
   patientId   String
   patient     User     @relation(fields: [patientId], references: [id])
+  sessionId   String?
+  session     MonitoringSession? @relation(fields: [sessionId], references: [id])
+  deviceId    String?
 
   // From Arduino
   gsrRaw      Int
@@ -60,9 +63,21 @@ model SensorReading {
   spo2        Float?
   temperature Float
 
+  // Raw Firebase payload fields from ESP8266.
+  gsrBaseline     Int?
+  gsrDiff         Int?
+  ir              Int?
+  red             Int?
+  fingerDetected  Boolean?
+  skinDetected    Boolean?
+  stressScore     Int?
+  status          String?
+  sourceTimestampMs BigInt?
+
   recordedAt DateTime @default(now())
 
   @@index([patientId, recordedAt])
+  @@index([sessionId, recordedAt])
 }
 
 model Alert {
@@ -111,6 +126,7 @@ model MonitoringSession {
   patientId String
   patient   User          @relation(fields: [patientId], references: [id])
   deviceId  String?
+  readings  SensorReading[]
   status    SessionStatus @default(ACTIVE)
   startedAt DateTime      @default(now())
   endedAt   DateTime?

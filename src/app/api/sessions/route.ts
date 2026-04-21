@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { rtdbPut } from '@/lib/firebaseRtdbServer';
 
 // GET /api/sessions?patientId=xxx  → active session or null
 export async function GET(req: NextRequest) {
@@ -34,6 +35,19 @@ export async function POST(req: NextRequest) {
   const session = await prisma.monitoringSession.create({
     data: { patientId, deviceId: deviceId ?? null, status: 'ACTIVE' },
   });
+
+  // Expose the active session to device clients (ESP/bridge) via Firebase.
+  try {
+    await rtdbPut('bridge/activeSession', {
+      sessionId: session.id,
+      patientId: session.patientId,
+      deviceId: session.deviceId,
+      startedAt: session.startedAt.toISOString(),
+      status: session.status,
+    });
+  } catch {
+    // Session creation should not fail just because Firebase sync failed.
+  }
 
   return NextResponse.json(session, { status: 201 });
 }

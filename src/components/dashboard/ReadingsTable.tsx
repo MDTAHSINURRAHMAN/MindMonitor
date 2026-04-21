@@ -63,6 +63,8 @@ export function ReadingsTable({ readings, pageSize = 15 }: Props) {
               <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Temp</th>
               <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">GSR Raw</th>
               <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Resistance</th>
+              <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
+              <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">Session / Device</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
@@ -105,6 +107,19 @@ export function ReadingsTable({ readings, pageSize = 15 }: Props) {
                   </td>
                   <td className="px-4 py-3 font-tabular text-gray-800">
                     {r.resistance.toFixed(1)}<span className="text-xs text-gray-400">Ω</span>
+                  </td>
+                  <td className="px-4 py-3">
+                    {r.stressScore != null && r.status ? (
+                      <span className="text-xs text-gray-600">
+                        {r.status} ({r.stressScore})
+                      </span>
+                    ) : (
+                      <span className="text-gray-300">—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-xs text-gray-600 whitespace-nowrap">
+                    <div>{r.sessionId ?? '—'}</div>
+                    <div className="text-gray-400">{r.deviceId ?? '—'}</div>
                   </td>
                 </tr>
               );

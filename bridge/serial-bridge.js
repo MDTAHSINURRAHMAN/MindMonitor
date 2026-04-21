@@ -20,8 +20,10 @@ const axios = require('axios');
 const COM_PORT   = process.env.COM_PORT   ?? 'COM3';
 const BAUD_RATE  = Number(process.env.BAUD_RATE ?? 9600);
 const API_URL    = process.env.API_URL    ?? 'http://localhost:3000/api/sensor';
+const SESSIONS_URL = process.env.SESSIONS_URL ?? 'http://localhost:3000/api/sessions';
 const API_KEY    = process.env.ARDUINO_API_KEY;
 const PATIENT_ID = process.env.PATIENT_ID;
+const DEVICE_ID  = process.env.DEVICE_ID ?? 'esp8266-bridge';
 
 if (!API_KEY)    { console.error('❌  ARDUINO_API_KEY env var not set'); process.exit(1); }
 if (!PATIENT_ID) { console.error('❌  PATIENT_ID env var not set');      process.exit(1); }
@@ -44,6 +46,29 @@ const STRESS_LABELS = {
   3: 'Stressed',
 };
 
+let activeSessionId = null;
+let activeSessionFetchedAt = 0;
+
+async function getActiveSessionId() {
+  const now = Date.now();
+  if (activeSessionId && now - activeSessionFetchedAt < 5000) {
+    return activeSessionId;
+  }
+
+  try {
+    const { data } = await axios.get(`${SESSIONS_URL}?patientId=${encodeURIComponent(PATIENT_ID)}`, {
+      timeout: 5000,
+    });
+
+    activeSessionId = data?.id ?? null;
+    activeSessionFetchedAt = now;
+    return activeSessionId;
+  } catch {
+    activeSessionFetchedAt = now;
+    return null;
+  }
+}
+
 // ── Data handler ──────────────────────────────────────────────────────────────
 parser.on('data', async (line) => {
   const trimmed = line.trim();
@@ -57,8 +82,16 @@ parser.on('data', async (line) => {
   // Guard: reject if any value is NaN
   if ([gsrRaw, resistance, stressLevel, temperature].some(isNaN)) return;
 
+  const sessionId = await getActiveSessionId();
+  if (!sessionId) {
+    console.log(`[${new Date().toISOString()}] ⏸️  No active session for patient ${PATIENT_ID}; skipping reading`);
+    return;
+  }
+
   const payload = {
     patientId:   PATIENT_ID,
+    sessionId,
+    deviceId: DEVICE_ID,
     gsrRaw:      Math.round(gsrRaw),
     resistance,
     stressLevel: Math.round(stressLevel),
@@ -71,9 +104,12 @@ parser.on('data', async (line) => {
       headers: { 'x-api-key': API_KEY },
       timeout: 5000,
     });
-    console.log(`[${new Date().toISOString()}] ✅  Sent → id=${data.id}  stress=${stressLevel}  temp=${temperature}°C`);
+    console.log(`[${new Date().toISOString()}] ✅  Sent → id=${data.id} session=${sessionId} stress=${stressLevel} temp=${temperature}°C`);
   } catch (err) {
     const status = err.response?.status;
+    if (status === 409) {
+      activeSessionId = null;
+    }
     console.error(`[${new Date().toISOString()}] ❌  POST failed (${status ?? err.message})`);
   }
 });

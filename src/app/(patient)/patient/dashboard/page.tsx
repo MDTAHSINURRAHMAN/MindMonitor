@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { createServerClient } from '@supabase/ssr';
 import { prisma } from '@/lib/prisma';
+import { syncFirebaseReadingsForPatient } from '@/lib/firebaseReadingsSync';
 import { Suspense } from 'react';
 
 import { StressLineChart }        from '@/components/charts/StressLineChart';
@@ -50,9 +51,16 @@ export default async function PatientDashboardPage({ searchParams }: PageProps) 
   /* ── Date range ── */
   const { range: rawRange } = await searchParams;
   const range = rawRange && RANGE_MS[rawRange] ? rawRange : '24h';
-  const since = new Date(Date.now() - RANGE_MS[range]);
+  const since = new Date(new Date().getTime() - RANGE_MS[range]);
 
   const patientId = tentativeId;
+
+  // Pull latest readings from Firebase into Prisma before querying chart data.
+  try {
+    await syncFirebaseReadingsForPatient(patientId);
+  } catch {
+    // Dashboard can still render existing DB data if sync fails.
+  }
 
   /* ── Parallel auth verification + data fetching ── */
   const [{ data: { user } }, readings, alerts, evaluations, activeSession, dbUser] = await Promise.all([
@@ -62,8 +70,19 @@ export default async function PatientDashboardPage({ searchParams }: PageProps) 
       orderBy: { recordedAt: 'asc' },
       select: {
         id:          true,
+        sessionId:   true,
+        deviceId:    true,
         recordedAt:  true,
         gsrRaw:      true,
+        gsrBaseline: true,
+        gsrDiff:     true,
+        ir:          true,
+        red:         true,
+        fingerDetected: true,
+        skinDetected: true,
+        stressScore: true,
+        status:      true,
+        sourceTimestampMs: true,
         resistance:  true,
         stressLevel: true,
         stressLabel: true,
@@ -105,12 +124,16 @@ export default async function PatientDashboardPage({ searchParams }: PageProps) 
   if (!user) redirect('/login');
 
   /* ── Serialise Dates for client components ── */
-  const serialisedReadings = readings.map((r) => ({
-    ...r,
-    recordedAt: r.recordedAt.toISOString(),
-    heartRate:  r.heartRate ?? null,
-    spo2:       r.spo2 ?? null,
-  }));
+  const serialisedReadings = readings.map((r) => {
+    const sourceTimestampMs = (r as unknown as { sourceTimestampMs?: bigint | null }).sourceTimestampMs;
+    return {
+      ...r,
+      recordedAt: r.recordedAt.toISOString(),
+      heartRate:  r.heartRate ?? null,
+      spo2:       r.spo2 ?? null,
+      sourceTimestampMs: sourceTimestampMs != null ? sourceTimestampMs.toString() : null,
+    };
+  });
 
   const serialisedAlerts = alerts.map((a) => ({
     ...a,

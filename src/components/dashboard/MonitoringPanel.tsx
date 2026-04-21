@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Activity, Thermometer, Zap, Heart, Wind,
   Play, Square, Wifi, WifiOff, Fingerprint,
@@ -110,12 +111,24 @@ function useElapsed(startedAt: string | null): string {
 
 /* ─── live reading display ──────────────────────────────────────────────── */
 
-function LiveDisplay({ session }: { session: ActiveSession }) {
-  const { reading, streamStatus, readingCount } = useSessionStream(session.id);
+function LiveDisplay({ session, patientId }: { session: ActiveSession; patientId: string }) {
+  const { reading, streamStatus, readingCount, lastPersistedTs } = useSessionStream(session.id, patientId);
+  const router = useRouter();
+  const [lastRefreshAt, setLastRefreshAt] = useState(0);
   const elapsed = useElapsed(session.startedAt);
 
   const isConnected = streamStatus === 'connected';
   const isConnecting = streamStatus === 'connecting';
+
+  useEffect(() => {
+    if (!lastPersistedTs) return;
+
+    const now = Date.now();
+    if (now - lastRefreshAt < 4000) return;
+
+    setLastRefreshAt(now);
+    router.refresh();
+  }, [lastPersistedTs, lastRefreshAt, router]);
 
   return (
     <div className="space-y-5">
@@ -329,7 +342,7 @@ export function MonitoringPanel({ patientId, initialSession }: Props) {
 
       {/* ── body ── */}
       {session ? (
-        <LiveDisplay session={session} />
+        <LiveDisplay session={session} patientId={patientId} />
       ) : (
         <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-gray-200 bg-gray-50 py-14 text-center">
           <div className="rounded-full bg-indigo-50 p-4">

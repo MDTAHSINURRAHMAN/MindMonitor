@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import dummyData from "../../../../bridge/dummy-sensor-data.json";
+import { prisma } from "@/lib/prisma";
+import { syncFirebaseReadingsForPatient } from "@/lib/firebaseReadingsSync";
 
 const RANGE_MS: Record<string, number> = {
   "24h":  86_400_000,
@@ -24,26 +25,48 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // --- DUMMY MODE: serve data from local JSON, no DB required ---
-  const raw = (dummyData.readings as Record<string, unknown>[]).filter(
-    (r) => !("_scenario" in r) || r._scenario === undefined || true, // include all entries
+  try {
+    await syncFirebaseReadingsForPatient(patientId);
+  } catch {
+    // If sync fails, still return existing DB records.
+  }
+
+  const since = new Date(Date.now() - rangeMs);
+  const readings = await prisma.sensorReading.findMany({
+    where: { patientId, recordedAt: { gte: since } },
+    orderBy: { recordedAt: "asc" },
+    select: {
+      id: true,
+      patientId: true,
+      sessionId: true,
+      deviceId: true,
+      recordedAt: true,
+      stressLevel: true,
+      stressLabel: true,
+      stressScore: true,
+      status: true,
+      gsrRaw: true,
+      gsrBaseline: true,
+      gsrDiff: true,
+      ir: true,
+      red: true,
+      fingerDetected: true,
+      skinDetected: true,
+      sourceTimestampMs: true,
+      resistance: true,
+      temperature: true,
+      heartRate: true,
+      spo2: true,
+    },
+  });
+
+  return NextResponse.json(
+    readings.map((r) => ({
+      ...r,
+      recordedAt: r.recordedAt.toISOString(),
+      heartRate: r.heartRate ?? null,
+      spo2: r.spo2 ?? null,
+      sourceTimestampMs: r.sourceTimestampMs != null ? r.sourceTimestampMs.toString() : null,
+    })),
   );
-
-  const now = Date.now();
-  const interval = rangeMs / raw.length;
-
-  const readings = raw.map((r, i) => ({
-    id:          `dummy-${i}`,
-    recordedAt:  new Date(now - rangeMs + i * interval).toISOString(),
-    patientId,
-    stressLevel: r.stressLevel as number,
-    stressLabel: r.stressLabel as string,
-    gsrRaw:      r.gsrRaw as number,
-    resistance:  r.resistance as number,
-    temperature: r.temperature as number,
-    heartRate:   (r.heartRate as number | undefined) ?? null,
-    spo2:        (r.spo2 as number | undefined) ?? null,
-  }));
-
-  return NextResponse.json(readings);
 }
