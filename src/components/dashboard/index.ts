@@ -12,3 +12,4 @@ export type { PatientSummary } from './PatientListSidebar';
 export { PatientDetailPanel } from './PatientDetailPanel';
 export { AlertFeed } from './AlertFeed';
 export type { FeedAlert } from './AlertFeed';
+export { ReadingsTable } from './ReadingsTable';

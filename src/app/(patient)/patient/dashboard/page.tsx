@@ -7,10 +7,15 @@ import { Suspense } from 'react';
 import { StressLineChart }        from '@/components/charts/StressLineChart';
 import { TemperatureGauge }       from '@/components/charts/TemperatureGauge';
 import { StressDistributionPie }  from '@/components/charts/StressDistributionPie';
-import { LiveReadingCard }        from '@/components/dashboard/LiveReadingCard';
+import { VitalsLineChart }        from '@/components/charts/VitalsLineChart';
+import { GsrLineChart }           from '@/components/charts/GsrLineChart';
+import { MonitoringPanel }        from '@/components/dashboard/MonitoringPanel';
 import { AlertBanner }            from '@/components/dashboard/AlertBanner';
 import { EvaluationList }         from '@/components/dashboard/EvaluationList';
 import { DateRangePicker }        from '@/components/dashboard/DateRangePicker';
+import { ReadingsTable }          from '@/components/dashboard/ReadingsTable';
+import { UpcomingAppointments }   from '@/components/dashboard/UpcomingAppointments';
+import Link                       from 'next/link';
 
 const RANGE_MS: Record<string, number> = {
   '24h': 86_400_000,
@@ -50,9 +55,7 @@ export default async function PatientDashboardPage({ searchParams }: PageProps) 
   const patientId = tentativeId;
 
   /* ── Parallel auth verification + data fetching ── */
-  // getUser() contacts the Supabase Auth server to securely validate the token.
-  // Running it alongside the DB queries means total latency = max(auth, db).
-  const [{ data: { user } }, readings, alerts, evaluations] = await Promise.all([
+  const [{ data: { user } }, readings, alerts, evaluations, activeSession, dbUser] = await Promise.all([
     supabase.auth.getUser(),
     prisma.sensorReading.findMany({
       where: { patientId, recordedAt: { gte: since } },
@@ -89,6 +92,14 @@ export default async function PatientDashboardPage({ searchParams }: PageProps) 
         },
       },
     }),
+    prisma.monitoringSession.findFirst({
+      where: { patientId, status: 'ACTIVE' },
+      orderBy: { startedAt: 'desc' },
+    }),
+    prisma.user.findUnique({
+      where: { id: patientId },
+      select: { name: true },
+    }),
   ]);
 
   if (!user) redirect('/login');
@@ -114,6 +125,16 @@ export default async function PatientDashboardPage({ searchParams }: PageProps) 
 
   const latest = serialisedReadings.at(-1) ?? null;
 
+  const serialisedSession = activeSession
+    ? {
+        id:        activeSession.id,
+        patientId: activeSession.patientId,
+        deviceId:  activeSession.deviceId,
+        status:    activeSession.status,
+        startedAt: activeSession.startedAt.toISOString(),
+      }
+    : null;
+
   return (
     <main className="min-h-screen bg-gray-50">
       <div className="mx-auto max-w-5xl px-4 py-8 space-y-8">
@@ -136,8 +157,24 @@ export default async function PatientDashboardPage({ searchParams }: PageProps) 
           <AlertBanner alerts={serialisedAlerts} />
         )}
 
-        {/* ── Live reading card ── */}
-        <LiveReadingCard initialReading={latest} patientId={patientId} />
+        {/* ── Live monitoring panel ── */}
+        <MonitoringPanel patientId={patientId} initialSession={serialisedSession} />
+
+        {/* ── Upcoming video appointments ── */}
+        <UpcomingAppointments
+          patientId={patientId}
+          patientName={dbUser?.name ?? user?.email ?? 'Patient'}
+        />
+
+        {/* ── Latest readings summary ── */}
+        {latest && (
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <SummaryCard label="Heart Rate"   value={latest.heartRate != null ? `${latest.heartRate} bpm` : '—'} color="text-red-500" />
+            <SummaryCard label="SpO₂"         value={latest.spo2      != null ? `${latest.spo2.toFixed(1)} %` : '—'} color="text-blue-500" />
+            <SummaryCard label="GSR Raw"      value={`${latest.gsrRaw}`}                     color="text-purple-500" />
+            <SummaryCard label="Resistance"   value={`${latest.resistance.toFixed(1)} Ω`}    color="text-amber-500" />
+          </div>
+        )}
 
         {/* ── Charts row ── */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -174,6 +211,36 @@ export default async function PatientDashboardPage({ searchParams }: PageProps) 
           </div>
         </div>
 
+        {/* ── Heart Rate & SpO₂ chart ── */}
+        <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+          <h2 className="mb-4 text-sm font-semibold text-gray-700 uppercase tracking-wide">
+            Heart Rate &amp; SpO₂ over time
+          </h2>
+          <VitalsLineChart data={serialisedReadings} />
+        </div>
+
+        {/* ── GSR & Resistance chart ── */}
+        <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+          <h2 className="mb-4 text-sm font-semibold text-gray-700 uppercase tracking-wide">
+            GSR &amp; Resistance over time
+          </h2>
+          <GsrLineChart data={serialisedReadings} />
+        </div>
+
+        {/* ── Recent Readings Table ── */}
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-semibold text-gray-800">Recent Readings</h2>
+            <Link
+              href="/patient/dashboard/history"
+              className="text-xs font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
+            >
+              View full history →
+            </Link>
+          </div>
+          <ReadingsTable readings={serialisedReadings} pageSize={10} />
+        </section>
+
         {/* ── Evaluations ── */}
         <section>
           <h2 className="mb-3 text-base font-semibold text-gray-800">
@@ -191,6 +258,15 @@ function EmptyChart({ message }: { message: string }) {
   return (
     <div className="flex h-50 items-center justify-center text-sm text-gray-400">
       {message}
+    </div>
+  );
+}
+
+function SummaryCard({ label, value, color }: { label: string; value: string; color: string }) {
+  return (
+    <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm flex flex-col gap-1">
+      <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{label}</span>
+      <span className={`text-xl font-bold tabular-nums ${color}`}>{value}</span>
     </div>
   );
 }

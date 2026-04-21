@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs grep *)"
+    ],
+    "additionalDirectories": [
+      "e:\\mental-health-monitor\\src\\app\\api\\appointments"
+    ]
+  }
+}

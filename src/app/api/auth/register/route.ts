@@ -6,12 +6,15 @@ import { prisma } from "@/lib/prisma";
  * Body: { name: string; email: string; role: "PATIENT" | "DOCTOR" }
  *
  * Creates a Prisma User record after Supabase Auth signup succeeds on the client.
- * Called immediately after supabase.auth.signUp() succeeds.
+ * After creation, auto-assigns the new user:
+ *   - PATIENT → assigned to every existing DOCTOR
+ *   - DOCTOR  → all existing PATIENTs assigned to them
  */
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { name, email, role } = body as {
+    const { id, name, email, role } = body as {
+      id?: string;
       name?: string;
       email?: string;
       role?: string;
@@ -27,11 +30,10 @@ export async function POST(req: NextRequest) {
 
     const normalizedEmail = email.toLowerCase().trim();
 
-    // Upsert so retries (e.g. after a network hiccup) are idempotent.
-    // If the record already exists we leave it unchanged and return 200.
     const user = await prisma.user.upsert({
       where: { email: normalizedEmail },
       create: {
+        ...(id ? { id } : {}),
         name: name.trim(),
         email: normalizedEmail,
         role: role as "PATIENT" | "DOCTOR",
@@ -40,9 +42,33 @@ export async function POST(req: NextRequest) {
       select: { id: true, name: true, email: true, role: true },
     });
 
+    // Auto-assign: connect the new user to all existing counterparts.
+    if (role === "PATIENT") {
+      const doctors = await prisma.user.findMany({
+        where: { role: "DOCTOR" },
+        select: { id: true },
+      });
+      if (doctors.length > 0) {
+        await prisma.patientDoctor.createMany({
+          data: doctors.map((d) => ({ patientId: user.id, doctorId: d.id })),
+          skipDuplicates: true,
+        });
+      }
+    } else if (role === "DOCTOR") {
+      const patients = await prisma.user.findMany({
+        where: { role: "PATIENT" },
+        select: { id: true },
+      });
+      if (patients.length > 0) {
+        await prisma.patientDoctor.createMany({
+          data: patients.map((p) => ({ patientId: p.id, doctorId: user.id })),
+          skipDuplicates: true,
+        });
+      }
+    }
+
     return NextResponse.json(user, { status: 201 });
   } catch (err: unknown) {
-
     console.error("[POST /api/auth/register]", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }

@@ -23,14 +23,19 @@ model User {
   createdAt DateTime @default(now())
 
   // Patient relations
-  readings            SensorReading[]
-  alerts              Alert[]
-  evaluationsReceived Evaluation[]    @relation("PatientEvaluations")
+  readings             SensorReading[]
+  alerts               Alert[]
+  evaluationsReceived  Evaluation[]         @relation("PatientEvaluations")
+  monitoringSessions   MonitoringSession[]
 
   // Doctor relations
   evaluationsGiven Evaluation[]    @relation("DoctorEvaluations")
   assignedPatients PatientDoctor[] @relation("DoctorPatients")
   assignedDoctors  PatientDoctor[] @relation("PatientDoctors")
+
+  // Video appointments
+  appointmentsAsPatient VideoAppointment[] @relation("PatientAppointments")
+  appointmentsAsDoctor  VideoAppointment[] @relation("DoctorAppointments")
 }
 
 enum Role {
@@ -99,4 +104,45 @@ model PatientDoctor {
   assignedAt DateTime @default(now())
 
   @@id([patientId, doctorId])
+}
+
+model MonitoringSession {
+  id        String        @id @default(cuid())
+  patientId String
+  patient   User          @relation(fields: [patientId], references: [id])
+  deviceId  String?
+  status    SessionStatus @default(ACTIVE)
+  startedAt DateTime      @default(now())
+  endedAt   DateTime?
+
+  @@index([patientId, status])
+}
+
+enum SessionStatus {
+  ACTIVE
+  ENDED
+}
+
+model VideoAppointment {
+  id          String            @id @default(cuid())
+  patientId   String
+  doctorId    String
+  patient     User              @relation("PatientAppointments", fields: [patientId], references: [id])
+  doctor      User              @relation("DoctorAppointments",  fields: [doctorId],  references: [id])
+  scheduledAt DateTime
+  roomId      String            @unique @default(cuid())
+  status      AppointmentStatus @default(SCHEDULED)
+  startedAt   DateTime?
+  endedAt     DateTime?
+  createdAt   DateTime          @default(now())
+
+  @@index([patientId])
+  @@index([doctorId])
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  ACTIVE
+  COMPLETED
+  CANCELLED
 }

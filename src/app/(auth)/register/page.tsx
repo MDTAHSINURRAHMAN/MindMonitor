@@ -171,11 +171,13 @@ export default function RegisterPage() {
       return;
     }
 
-    // 2 — Create matching Prisma User record
+    // 2 — Create matching Prisma User record (use the Supabase user ID so that
+    // the Prisma User.id == Supabase auth UID everywhere in the app).
+    const supabaseUserId = data.user?.id;
     const res = await fetch("/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: form.name, email: form.email, role: form.role }),
+      body: JSON.stringify({ id: supabaseUserId, name: form.name, email: form.email, role: form.role }),
     });
 
     if (!res.ok && res.status !== 409) {
