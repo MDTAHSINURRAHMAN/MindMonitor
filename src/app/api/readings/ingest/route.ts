@@ -13,7 +13,7 @@ const IngestSchema = z.object({
     .object({
       patientId: z.string().optional(),
       sessionId: z.string().optional(),
-      deviceId: z.string().optional(),
+      deviceId: z.string().min(1).optional(),
       bpm: z.number().optional(),
       gsr: z.number().optional(),
       gsrBaseline: z.number().optional(),

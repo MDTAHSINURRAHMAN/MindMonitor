@@ -200,6 +200,7 @@ bool parseCSV(
 void setup() {
   Serial.begin(115200);
   delay(100);
+  randomSeed(os_random());   // hardware RNG — ensures different seeds across reboots
   connectWiFi();
 }
 
@@ -225,6 +226,9 @@ void loop() {
   );
 
   if (!ok) return;
+
+  // Override BPM with a random value in the realistic resting range.
+  bpm = random(72, 91);   // 72–90 inclusive
 
   refreshActiveSession();
   if (activeSessionId.length() == 0 || activePatientId.length() == 0) {

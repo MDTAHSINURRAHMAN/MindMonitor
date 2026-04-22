@@ -15,6 +15,7 @@ export interface SessionStream {
 type RawLiveReading = Partial<LiveReading> & {
   sensorId?: string;
   timeStampMs?: number;
+  deviceId?: string;
 };
 
 function toLiveReading(raw: RawLiveReading, sessionId: string, fallbackPatientId = ''): LiveReading | null {
@@ -39,6 +40,7 @@ function toLiveReading(raw: RawLiveReading, sessionId: string, fallbackPatientId
   return {
     patientId,
     sessionId: typeof raw.sessionId === 'string' ? raw.sessionId : sessionId,
+    deviceId: typeof raw.deviceId === 'string' ? raw.deviceId : undefined,
     bpm: typeof raw.bpm === 'number' ? raw.bpm : 0,
     spo2: typeof raw.spo2 === 'number' ? raw.spo2 : 0,
     temperature: typeof raw.temperature === 'number' ? raw.temperature : 0,
@@ -82,10 +84,9 @@ export function useSessionStream(sessionId: string | null, patientId: string): S
         patientId,
         sessionId: currentSessionId,
         reading: {
-          // Always use the hook-level patientId so ESP readings (which omit patientId
-          // in their Firebase payload) are attributed to the correct patient.
           patientId,
           sessionId: currentSessionId,
+          deviceId: value.deviceId,
           bpm: value.bpm,
           gsr: value.gsr,
           gsrBaseline: value.gsrBaseline,

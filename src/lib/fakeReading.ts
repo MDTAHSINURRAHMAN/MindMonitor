@@ -1,6 +1,7 @@
 export interface LiveReading {
   patientId: string;
   sessionId: string;
+  deviceId?: string;
   bpm: number;
   spo2: number;
   temperature: number;
@@ -83,11 +84,9 @@ export function toSensorReadingData(r: LiveReading) {
     stressLevel === 3 ? 'High Stress'
     : stressLevel === 2 ? 'Slightly Stressed'
     : 'Normal';
-  const resistance = parseFloat(((1024 - r.gsr) / r.gsr * 100).toFixed(1));
 
   return {
-    gsrRaw:     r.gsr,
-    resistance,
+    gsrRaw:      r.gsr,
     stressLevel,
     stressLabel,
     temperature: r.temperature,

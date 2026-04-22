@@ -54,7 +54,6 @@ model SensorReading {
 
   // From Arduino
   gsrRaw      Int
-  resistance  Float
   stressLevel Int
   stressLabel String
 

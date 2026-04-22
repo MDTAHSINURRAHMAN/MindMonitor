@@ -80,21 +80,21 @@ function stressPctStatus(pct: number): ClinicalStatus {
 }
 
 const STATUS_CARD: Record<ClinicalStatus, { border: string; iconBg: string; valueColor: string; sub: string }> = {
-  normal: { border: 'border-gray-100',    iconBg: 'bg-gray-50',   valueColor: 'text-gray-800',   sub: '' },
-  warn:   { border: 'border-orange-200',  iconBg: 'bg-orange-50', valueColor: 'text-orange-700', sub: 'Borderline' },
-  danger: { border: 'border-red-200',     iconBg: 'bg-red-50',    valueColor: 'text-red-700',    sub: 'Attention needed' },
+  normal: { border: 'border-white/10',   iconBg: 'bg-white/5',        valueColor: 'text-white/90',   sub: '' },
+  warn:   { border: 'border-amber-500/30', iconBg: 'bg-amber-500/10', valueColor: 'text-amber-400',  sub: 'Borderline' },
+  danger: { border: 'border-rose-500/30', iconBg: 'bg-rose-500/10',   valueColor: 'text-rose-400',   sub: 'Attention needed' },
 };
 
 const STRESS_RING: Record<number, string> = {
-  1: 'ring-green-400',
-  2: 'ring-orange-400',
-  3: 'ring-red-500',
+  1: 'ring-emerald-500/40',
+  2: 'ring-amber-400/40',
+  3: 'ring-rose-500/50',
 };
 
 const RISK_BADGE: Record<number, { bg: string; text: string; label: string }> = {
-  1: { bg: 'bg-green-100',  text: 'text-green-700',  label: 'Low Risk'      },
-  2: { bg: 'bg-orange-100', text: 'text-orange-700', label: 'Moderate Risk' },
-  3: { bg: 'bg-red-100',    text: 'text-red-700',    label: 'High Risk'     },
+  1: { bg: 'bg-emerald-500/15', text: 'text-emerald-400', label: 'Low Risk'      },
+  2: { bg: 'bg-amber-500/15',   text: 'text-amber-400',   label: 'Moderate Risk' },
+  3: { bg: 'bg-rose-500/15',    text: 'text-rose-400',    label: 'High Risk'     },
 };
 
 function StatCard({
@@ -114,16 +114,16 @@ function StatCard({
 }) {
   const s = STATUS_CARD[status];
   return (
-    <div className={`flex items-start gap-3 rounded-xl border ${s.border} bg-white p-4 shadow-sm`}>
+    <div className={`flex items-start gap-3 rounded-xl border ${s.border} bg-white/5 backdrop-blur-md p-4`}>
       <div className={`mt-0.5 rounded-lg p-2 ${s.iconBg} shrink-0`}>{icon}</div>
       <div className="min-w-0">
-        <p className="text-xs text-gray-500 mb-0.5">{label}</p>
+        <p className="text-xs text-white/40 mb-0.5">{label}</p>
         <p className={`text-xl font-bold tabular-nums ${s.valueColor}`}>
           {value}
-          {unit && <span className="ml-1 text-sm font-normal text-gray-400">{unit}</span>}
+          {unit && <span className="ml-1 text-sm font-normal text-white/30">{unit}</span>}
         </p>
         {(sub ?? s.sub) && (
-          <p className={`text-xs mt-0.5 ${status !== 'normal' ? s.valueColor : 'text-gray-400'}`}>
+          <p className={`text-xs mt-0.5 ${status !== 'normal' ? s.valueColor : 'text-white/30'}`}>
             {sub ?? s.sub}
           </p>
         )}
@@ -134,8 +134,8 @@ function StatCard({
 
 function ChartCard({ title, children, className = '' }: { title: string; children: React.ReactNode; className?: string }) {
   return (
-    <div className={`rounded-2xl border border-gray-100 bg-white p-4 shadow-sm ${className}`}>
-      <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400">{title}</h3>
+    <div className={`rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-4 ${className}`}>
+      <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-white/35">{title}</h3>
       {children}
     </div>
   );
@@ -295,33 +295,38 @@ export function PatientDetailPanel({ patient, doctorId }: Props) {
       />
     )}
 
-    <div className="flex h-full flex-1 flex-col overflow-y-auto bg-gray-50 p-6 gap-5">
+    <div className="flex h-full flex-1 flex-col overflow-y-auto bg-gray-950 p-6 gap-5">
 
       {/* ─── Patient Hero ─── */}
-      <div className="flex items-center gap-4 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-        {/* Avatar with stress-level ring */}
-        <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-full ring-4 ${ringClass} text-xl font-bold ${
-          stressLevel === 3 ? 'bg-red-100 text-red-700'    :
-          stressLevel === 2 ? 'bg-orange-100 text-orange-700' :
-          stressLevel === 1 ? 'bg-green-100 text-green-700' :
-                              'bg-indigo-100 text-indigo-600'
+      <div className="relative overflow-hidden flex items-center gap-4 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-5">
+        {/* glow behind avatar */}
+        <div className={`pointer-events-none absolute -top-8 -left-8 h-32 w-32 rounded-full blur-3xl opacity-20 ${
+          stressLevel === 3 ? 'bg-rose-500' : stressLevel === 2 ? 'bg-amber-400' : stressLevel === 1 ? 'bg-emerald-500' : 'bg-violet-500'
+        }`} />
+
+        {/* Avatar */}
+        <div className={`relative flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ring-2 ${ringClass} text-xl font-bold border ${
+          stressLevel === 3 ? 'bg-rose-500/20 text-rose-300 border-rose-500/30'    :
+          stressLevel === 2 ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' :
+          stressLevel === 1 ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' :
+                              'bg-violet-500/20 text-violet-300 border-violet-500/30'
         }`}>
           {patient.name.charAt(0).toUpperCase()}
         </div>
 
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 relative">
           <div className="flex items-center gap-2 flex-wrap">
-            <h2 className="text-lg font-bold text-gray-800 truncate">{patient.name}</h2>
+            <h2 className="text-lg font-bold text-white truncate">{patient.name}</h2>
             {riskBadge && (
-              <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${riskBadge.bg} ${riskBadge.text}`}>
-                {stressLevel === 3 && <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />}
+              <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-white/10 ${riskBadge.bg} ${riskBadge.text}`}>
+                {stressLevel === 3 && <span className="h-1.5 w-1.5 rounded-full bg-rose-500 animate-pulse" />}
                 {riskBadge.label}
               </span>
             )}
           </div>
-          <p className="text-sm text-gray-400 truncate">{patient.email}</p>
+          <p className="text-sm text-white/35 truncate">{patient.email}</p>
           {patient.latestReadingAt && (
-            <p className="mt-1 flex items-center gap-1 text-xs text-gray-400">
+            <p className="mt-1 flex items-center gap-1 text-xs text-white/30">
               <Clock className="h-3 w-3" />
               Last reading {timeAgo(patient.latestReadingAt)}
             </p>
@@ -329,18 +334,18 @@ export function PatientDetailPanel({ patient, doctorId }: Props) {
         </div>
 
         {/* Actions */}
-        <div className="flex flex-col items-end gap-2 shrink-0">
+        <div className="flex flex-col items-end gap-2 shrink-0 relative">
           {stats && (
             <div className="hidden sm:flex flex-col items-end gap-1 text-right">
-              <span className="text-xs text-gray-400">{stats.total} readings</span>
-              <span className={`text-xs font-semibold ${stressPctStatus(stats.highStressPct) === 'danger' ? 'text-red-600' : stressPctStatus(stats.highStressPct) === 'warn' ? 'text-orange-600' : 'text-gray-500'}`}>
+              <span className="text-xs text-white/30">{stats.total} readings</span>
+              <span className={`text-xs font-semibold ${stressPctStatus(stats.highStressPct) === 'danger' ? 'text-rose-400' : stressPctStatus(stats.highStressPct) === 'warn' ? 'text-amber-400' : 'text-white/40'}`}>
                 {stats.highStressPct}% high stress
               </span>
             </div>
           )}
           <button
             onClick={() => setShowScheduler(true)}
-            className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700 transition-colors"
+            className="flex items-center gap-1.5 rounded-xl bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-violet-500 transition-colors shadow-lg shadow-violet-900/40"
           >
             <CalendarPlus className="h-3.5 w-3.5" />
             Schedule Call
@@ -388,27 +393,27 @@ export function PatientDetailPanel({ patient, doctorId }: Props) {
 
       {/* ─── Range picker ─── */}
       <div className="flex items-center gap-2">
-        <TrendingUp className="h-4 w-4 text-gray-400 shrink-0" />
-        <span className="text-xs font-medium text-gray-500 mr-0.5">Range:</span>
+        <TrendingUp className="h-4 w-4 text-white/25 shrink-0" />
+        <span className="text-xs font-medium text-white/35 mr-0.5">Range:</span>
         {RANGES.map((r) => (
           <button
             key={r}
             onClick={() => setRange(r)}
-            className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+            className={`rounded-lg px-3 py-1 text-xs font-medium transition-all duration-200 ${
               range === r
-                ? 'bg-indigo-600 text-white shadow-sm'
-                : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                ? 'bg-violet-500/20 text-violet-300 border border-violet-500/30'
+                : 'bg-white/5 border border-white/8 text-white/40 hover:bg-white/8 hover:text-white/70'
             }`}
           >
             {RANGE_LABELS[r]}
           </button>
         ))}
         {stats && (
-          <span className="ml-1 text-xs text-gray-400">{stats.total} pts</span>
+          <span className="ml-1 text-xs text-white/25">{stats.total} pts</span>
         )}
         <button
           onClick={fetchReadings}
-          className="ml-auto rounded-md p-1 text-gray-400 hover:bg-white hover:text-gray-600 transition-colors"
+          className="ml-auto rounded-lg p-1.5 text-white/25 hover:bg-white/5 hover:text-white/50 transition-colors"
           title="Refresh"
         >
           <RefreshCw className={`h-3.5 w-3.5 ${loadingReadings ? 'animate-spin' : ''}`} />
@@ -456,30 +461,30 @@ export function PatientDetailPanel({ patient, doctorId }: Props) {
           </ChartCard>
         </div>
       ) : (
-        <div className="rounded-2xl border border-dashed border-gray-200 bg-white p-10 text-center">
-          <TrendingUp className="h-8 w-8 mx-auto mb-2 text-gray-300" />
-          <p className="text-sm text-gray-400">No readings available for this range.</p>
+        <div className="rounded-2xl border border-dashed border-white/10 bg-white/3 p-10 text-center backdrop-blur-md">
+          <TrendingUp className="h-8 w-8 mx-auto mb-2 text-white/15" />
+          <p className="text-sm text-white/30">No readings available for this range.</p>
         </div>
       )}
 
       {/* ─── Tabs ─── */}
-      <div className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
-        <div className="flex border-b border-gray-100">
+      <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md overflow-hidden">
+        <div className="flex border-b border-white/8">
           {TABS.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`flex items-center gap-1.5 px-5 py-3 text-sm font-medium transition-colors ${
+              className={`flex items-center gap-1.5 px-5 py-3 text-sm font-medium transition-all duration-200 ${
                 activeTab === tab.key
-                  ? 'border-b-2 border-indigo-600 text-indigo-600'
-                  : 'text-gray-500 hover:text-gray-700'
+                  ? 'border-b-2 border-violet-500 text-violet-300'
+                  : 'text-white/40 hover:text-white/70'
               }`}
             >
               {tab.icon}
               {tab.label}
               {tab.count != null && tab.count > 0 && (
                 <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
-                  activeTab === tab.key ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-100 text-gray-500'
+                  activeTab === tab.key ? 'bg-violet-500/20 text-violet-300' : 'bg-white/8 text-white/40'
                 }`}>
                   {tab.count}
                 </span>
@@ -491,16 +496,16 @@ export function PatientDetailPanel({ patient, doctorId }: Props) {
         <div className="p-5">
           {activeTab === 'history' && (
             loadingEvals ? (
-              <div className="flex items-center gap-2 text-sm text-gray-400">
+              <div className="flex items-center gap-2 text-sm text-white/30">
                 <RefreshCw className="h-4 w-4 animate-spin" /> Loading…
               </div>
             ) : evaluations.length === 0 ? (
               <div className="py-8 text-center">
-                <ClipboardList className="h-8 w-8 mx-auto mb-2 text-gray-300" />
-                <p className="text-sm text-gray-400">No evaluations yet.</p>
+                <ClipboardList className="h-8 w-8 mx-auto mb-2 text-white/15" />
+                <p className="text-sm text-white/30">No evaluations yet.</p>
                 <button
                   onClick={() => setActiveTab('new')}
-                  className="mt-3 text-xs text-indigo-600 hover:underline"
+                  className="mt-3 text-xs text-violet-400 hover:text-violet-300 transition-colors"
                 >
                   Add the first evaluation →
                 </button>
@@ -516,7 +521,7 @@ export function PatientDetailPanel({ patient, doctorId }: Props) {
 
           {activeTab === 'appointments' && (
             loadingAppts ? (
-              <div className="flex items-center gap-2 text-sm text-gray-400">
+              <div className="flex items-center gap-2 text-sm text-white/30">
                 <RefreshCw className="h-4 w-4 animate-spin" /> Loading…
               </div>
             ) : (
@@ -524,9 +529,9 @@ export function PatientDetailPanel({ patient, doctorId }: Props) {
                 {/* ── Upcoming / active ── */}
                 {upcomingAppts.length === 0 ? (
                   <div className="py-6 text-center">
-                    <Video className="h-8 w-8 mx-auto mb-2 text-gray-300" />
-                    <p className="text-sm text-gray-400">No upcoming appointments.</p>
-                    <button onClick={() => setShowScheduler(true)} className="mt-2 text-xs text-indigo-600 hover:underline">
+                    <Video className="h-8 w-8 mx-auto mb-2 text-white/15" />
+                    <p className="text-sm text-white/30">No upcoming appointments.</p>
+                    <button onClick={() => setShowScheduler(true)} className="mt-2 text-xs text-violet-400 hover:text-violet-300 transition-colors">
                       Schedule a video call →
                     </button>
                   </div>
@@ -537,23 +542,23 @@ export function PatientDetailPanel({ patient, doctorId }: Props) {
                         key={appt.id}
                         className={`flex items-center justify-between rounded-xl border p-4 ${
                           appt.status === 'ACTIVE'
-                            ? 'border-green-200 bg-green-50'
-                            : 'border-indigo-100 bg-indigo-50'
+                            ? 'border-emerald-500/30 bg-emerald-500/8'
+                            : 'border-violet-500/20 bg-violet-500/8'
                         }`}
                       >
                         <div>
                           <div className="flex items-center gap-2">
-                            <p className="text-sm font-semibold text-gray-800">
+                            <p className="text-sm font-semibold text-white/80">
                               {formatDateTime(appt.scheduledAt)}
                             </p>
                             {appt.status === 'ACTIVE' && (
-                              <span className="flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-bold text-green-700">
-                                <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+                              <span className="flex items-center gap-1 rounded-full bg-emerald-500/15 border border-emerald-500/25 px-2 py-0.5 text-xs font-bold text-emerald-400">
+                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                                 LIVE
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-gray-400 mt-0.5">
+                          <p className="text-xs text-white/30 mt-0.5">
                             Room: <span className="font-mono">{appt.roomId.slice(0, 10)}…</span>
                           </p>
                         </div>
@@ -563,7 +568,7 @@ export function PatientDetailPanel({ patient, doctorId }: Props) {
                               const updated = await patchAppointment(appt.id, 'ACTIVE');
                               setActiveCall(updated);
                             }}
-                            className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700 transition-colors"
+                            className="flex items-center gap-1.5 rounded-xl bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-violet-500 transition-colors"
                           >
                             <PhoneCall className="h-3.5 w-3.5" />
                             {appt.status === 'ACTIVE' ? 'Rejoin' : 'Start Call'}
@@ -574,7 +579,7 @@ export function PatientDetailPanel({ patient, doctorId }: Props) {
                                 await patchAppointment(appt.id, 'CANCELLED');
                                 fetchAppointments();
                               }}
-                              className="rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs text-gray-500 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors"
+                              className="rounded-xl border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-white/40 hover:bg-rose-500/10 hover:text-rose-400 hover:border-rose-500/25 transition-colors"
                             >
                               Cancel
                             </button>
@@ -584,7 +589,7 @@ export function PatientDetailPanel({ patient, doctorId }: Props) {
                     ))}
                     <button
                       onClick={() => setShowScheduler(true)}
-                      className="flex items-center gap-1.5 text-xs text-indigo-600 hover:underline"
+                      className="flex items-center gap-1.5 text-xs text-violet-400 hover:text-violet-300 transition-colors"
                     >
                       <CalendarPlus className="h-3.5 w-3.5" />
                       Schedule another call
@@ -594,38 +599,38 @@ export function PatientDetailPanel({ patient, doctorId }: Props) {
 
                 {/* ── History ── */}
                 {historyAppts.length > 0 && (
-                  <div className="border-t border-gray-100 pt-4">
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">
+                  <div className="border-t border-white/8 pt-4">
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-white/30">
                       Call History
                     </p>
                     <div className="space-y-2">
                       {historyAppts.map((appt) => (
                         <div
                           key={appt.id}
-                          className="flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50 p-3"
+                          className="flex items-center justify-between rounded-xl border border-white/8 bg-white/4 p-3"
                         >
                           <div className="flex items-center gap-3">
-                            <div className={`rounded-lg p-1.5 ${appt.status === 'COMPLETED' ? 'bg-green-100' : 'bg-gray-100'}`}>
+                            <div className={`rounded-lg p-1.5 ${appt.status === 'COMPLETED' ? 'bg-emerald-500/15' : 'bg-white/5'}`}>
                               {appt.status === 'COMPLETED'
-                                ? <Video className="h-4 w-4 text-green-600" />
-                                : <X     className="h-4 w-4 text-gray-400" />
+                                ? <Video className="h-4 w-4 text-emerald-400" />
+                                : <X     className="h-4 w-4 text-white/25" />
                               }
                             </div>
                             <div>
-                              <p className="text-sm font-medium text-gray-700">
+                              <p className="text-sm font-medium text-white/70">
                                 {formatDateTime(appt.scheduledAt)}
                               </p>
                               {appt.startedAt && appt.endedAt && (
-                                <p className="text-xs text-gray-400">
-                                  Duration: <span className="text-green-600 font-medium">{formatDuration(appt.startedAt, appt.endedAt)}</span>
+                                <p className="text-xs text-white/30">
+                                  Duration: <span className="text-emerald-400 font-medium">{formatDuration(appt.startedAt, appt.endedAt)}</span>
                                 </p>
                               )}
                             </div>
                           </div>
-                          <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                          <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-white/5 ${
                             appt.status === 'COMPLETED'
-                              ? 'bg-green-100 text-green-700'
-                              : 'bg-gray-100 text-gray-500'
+                              ? 'bg-emerald-500/15 text-emerald-400'
+                              : 'bg-white/5 text-white/30'
                           }`}>
                             {appt.status === 'COMPLETED' ? 'Completed' : 'Cancelled'}
                           </span>

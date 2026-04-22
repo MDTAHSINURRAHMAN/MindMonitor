@@ -32,8 +32,8 @@ const STRESS_LABELS: Record<number, string> = {
 function StressTooltip({ active, payload, label }: TooltipProps<number, string>) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-md text-sm">
-      <p className="font-medium text-gray-700 mb-1">{label}</p>
+    <div className="rounded-xl border border-white/10 bg-gray-900/95 px-3 py-2 shadow-xl backdrop-blur-md text-sm">
+      <p className="font-medium text-white/70 mb-1">{label}</p>
       {payload.map((entry) => (
         <p key={entry.dataKey as string} style={{ color: entry.color }}>
           {entry.name}:{' '}
@@ -59,30 +59,36 @@ export function StressLineChart({ data }: Props) {
   return (
     <ResponsiveContainer width="100%" height={300}>
       <LineChart data={formatted} margin={{ top: 8, right: 24, left: 0, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
         <XAxis
           dataKey="time"
-          tick={{ fontSize: 11 }}
+          tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.35)' }}
           interval="preserveStartEnd"
+          axisLine={{ stroke: 'rgba(255,255,255,0.08)' }}
+          tickLine={false}
         />
         <YAxis
           yAxisId="stress"
           domain={[0, 3]}
           ticks={[1, 2, 3]}
           tickFormatter={(v: number) => STRESS_LABELS[v] ?? v}
-          tick={{ fontSize: 11 }}
+          tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.35)' }}
           width={56}
+          axisLine={false}
+          tickLine={false}
         />
         <YAxis
           yAxisId="temp"
           orientation="right"
           domain={[35, 39]}
           tickFormatter={(v: number) => `${v}°`}
-          tick={{ fontSize: 11 }}
+          tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.35)' }}
           width={40}
+          axisLine={false}
+          tickLine={false}
         />
         <Tooltip content={<StressTooltip />} />
-        <Legend wrapperStyle={{ fontSize: 12 }} />
+        <Legend wrapperStyle={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }} />
         <ReferenceLine
           yAxisId="stress"
           y={3}

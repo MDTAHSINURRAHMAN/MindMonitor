@@ -4,6 +4,7 @@ import { createServerClient } from '@supabase/ssr';
 import { prisma } from '@/lib/prisma';
 import { syncFirebaseReadingsForPatient } from '@/lib/firebaseReadingsSync';
 import { Suspense } from 'react';
+import { Activity, Heart, Droplets, Zap, TrendingUp, Brain } from 'lucide-react';
 
 import { StressLineChart }        from '@/components/charts/StressLineChart';
 import { TemperatureGauge }       from '@/components/charts/TemperatureGauge';
@@ -42,8 +43,6 @@ export default async function PatientDashboardPage({ searchParams }: PageProps) 
     }
   );
 
-  // getSession() reads the JWT from the cookie locally (no network) — use it
-  // only to obtain the user ID so we can fire DB queries immediately.
   const { data: { session } } = await supabase.auth.getSession();
   const tentativeId = session?.user?.id;
   if (!tentativeId) redirect('/login');
@@ -55,18 +54,17 @@ export default async function PatientDashboardPage({ searchParams }: PageProps) 
 
   const patientId = tentativeId;
 
-  // Pull latest readings from Firebase into Prisma before querying chart data.
   try {
     await syncFirebaseReadingsForPatient(patientId);
   } catch {
     // Dashboard can still render existing DB data if sync fails.
   }
 
-  /* ── Parallel auth verification + data fetching ── */
+  /* ── Parallel data fetching ── */
   const [{ data: { user } }, readings, alerts, evaluations, activeSession, dbUser] = await Promise.all([
     supabase.auth.getUser(),
     prisma.sensorReading.findMany({
-      where: { patientId, recordedAt: { gte: since } },
+      where: { patientId, recordedAt: { gte: since }, deviceId: { not: null } },
       orderBy: { recordedAt: 'asc' },
       select: {
         id:          true,
@@ -83,7 +81,6 @@ export default async function PatientDashboardPage({ searchParams }: PageProps) 
         stressScore: true,
         status:      true,
         sourceTimestampMs: true,
-        resistance:  true,
         stressLevel: true,
         stressLabel: true,
         temperature: true,
@@ -123,7 +120,7 @@ export default async function PatientDashboardPage({ searchParams }: PageProps) 
 
   if (!user) redirect('/login');
 
-  /* ── Serialise Dates for client components ── */
+  /* ── Serialise Dates ── */
   const serialisedReadings = readings.map((r) => {
     const sourceTimestampMs = (r as unknown as { sourceTimestampMs?: bigint | null }).sourceTimestampMs;
     return {
@@ -158,24 +155,49 @@ export default async function PatientDashboardPage({ searchParams }: PageProps) 
       }
     : null;
 
+  const firstName = dbUser?.name?.split(' ')[0] ?? 'Patient';
+
   return (
-    <main className="min-h-screen bg-gray-50">
-      <div className="mx-auto max-w-5xl px-4 py-8 space-y-8">
+    <main className="relative min-h-screen overflow-hidden bg-gray-950">
+
+      {/* ── Background orbs ── */}
+      <div className="pointer-events-none absolute -top-40 -left-40 h-125 w-125 rounded-full blur-3xl opacity-20"
+        style={{ background: 'rgba(139,92,246,0.5)' }} />
+      <div className="pointer-events-none absolute top-1/3 -right-32 h-100 w-100 rounded-full blur-3xl opacity-15"
+        style={{ background: 'rgba(56,189,248,0.5)' }} />
+      <div className="pointer-events-none absolute bottom-0 left-1/3 h-75 w-75 rounded-full blur-3xl opacity-10"
+        style={{ background: 'rgba(244,63,94,0.5)' }} />
+
+      {/* ── Subtle grid overlay ── */}
+      <div className="pointer-events-none absolute inset-0 opacity-[0.03]"
+        style={{
+          backgroundImage: 'linear-gradient(rgba(255,255,255,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.4) 1px, transparent 1px)',
+          backgroundSize: '40px 40px',
+        }} />
+
+      <div className="relative z-10 mx-auto max-w-5xl px-4 py-8 space-y-6">
 
         {/* ── Page header ── */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">My Dashboard</h1>
-            <p className="text-sm text-gray-500 mt-1">
-              Real-time mental health monitoring
-            </p>
+            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-violet-500/30 bg-violet-500/10 px-3 py-1 text-xs font-medium text-violet-300 backdrop-blur-sm">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-violet-400" />
+              Real-time Monitoring
+            </div>
+            <h1 className="text-2xl font-extrabold text-white">
+              Welcome back,{' '}
+              <span className="bg-linear-to-r from-violet-400 via-fuchsia-400 to-rose-400 bg-clip-text text-transparent">
+                {firstName}
+              </span>
+            </h1>
+            <p className="text-sm text-white/40 mt-1">Your mental health dashboard</p>
           </div>
           <Suspense>
             <DateRangePicker />
           </Suspense>
         </div>
 
-        {/* ── Unacknowledged alerts ── */}
+        {/* ── Alerts ── */}
         {serialisedAlerts.length > 0 && (
           <AlertBanner alerts={serialisedAlerts} />
         )}
@@ -183,7 +205,7 @@ export default async function PatientDashboardPage({ searchParams }: PageProps) 
         {/* ── Live monitoring panel ── */}
         <MonitoringPanel patientId={patientId} initialSession={serialisedSession} />
 
-        {/* ── Upcoming video appointments ── */}
+        {/* ── Upcoming appointments ── */}
         <UpcomingAppointments
           patientId={patientId}
           patientName={dbUser?.name ?? user?.email ?? 'Patient'}
@@ -191,82 +213,96 @@ export default async function PatientDashboardPage({ searchParams }: PageProps) 
 
         {/* ── Latest readings summary ── */}
         {latest && (
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <SummaryCard label="Heart Rate"   value={latest.heartRate != null ? `${latest.heartRate} bpm` : '—'} color="text-red-500" />
-            <SummaryCard label="SpO₂"         value={latest.spo2      != null ? `${latest.spo2.toFixed(1)} %` : '—'} color="text-blue-500" />
-            <SummaryCard label="GSR Raw"      value={`${latest.gsrRaw}`}                     color="text-purple-500" />
-            <SummaryCard label="Resistance"   value={`${latest.resistance.toFixed(1)} Ω`}    color="text-amber-500" />
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <MetricCard
+              icon={<Heart size={14} strokeWidth={2.5} />}
+              label="Heart Rate"
+              value={latest.heartRate != null ? `${latest.heartRate}` : '—'}
+              unit={latest.heartRate != null ? 'bpm' : ''}
+              color="#f43f5e"
+              ringClass="ring-rose-500/30"
+            />
+            <MetricCard
+              icon={<Droplets size={14} strokeWidth={2.5} />}
+              label="SpO₂"
+              value={latest.spo2 != null ? `${latest.spo2.toFixed(1)}` : '—'}
+              unit={latest.spo2 != null ? '%' : ''}
+              color="#38bdf8"
+              ringClass="ring-sky-500/30"
+            />
+            <MetricCard
+              icon={<Zap size={14} strokeWidth={2.5} />}
+              label="GSR Raw"
+              value={`${latest.gsrRaw}`}
+              unit="ADC"
+              color="#a855f7"
+              ringClass="ring-purple-500/30"
+            />
+            <MetricCard
+              icon={<Activity size={14} strokeWidth={2.5} />}
+              label="GSR Delta"
+              value={latest.gsrDiff != null ? `${latest.gsrDiff}` : '—'}
+              unit={latest.gsrDiff != null ? 'ADC' : ''}
+              color="#f59e0b"
+              ringClass="ring-amber-500/30"
+            />
           </div>
         )}
 
-        {/* ── Charts row ── */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          {/* Line chart – spans 2 cols */}
-          <div className="col-span-1 lg:col-span-2 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-            <h2 className="mb-4 text-sm font-semibold text-gray-700 uppercase tracking-wide">
-              Stress &amp; Temperature over time
-            </h2>
+        {/* ── Charts ── */}
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+          {/* Stress & Temperature — spans 2 cols */}
+          <GlassCard title="Stress & Temperature" titleIcon={<Brain size={14} />} className="lg:col-span-2">
             {serialisedReadings.length > 0 ? (
               <StressLineChart data={serialisedReadings} />
             ) : (
               <EmptyChart message="No sensor data in this period." />
             )}
-          </div>
+          </GlassCard>
 
           {/* Right column */}
-          <div className="flex flex-col gap-6">
-            {/* Temperature gauge */}
-            <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm flex items-center justify-center">
+          <div className="flex flex-col gap-5">
+            <GlassCard title="Body Temperature" titleIcon={<Activity size={14} />}>
               {latest ? (
                 <TemperatureGauge value={latest.temperature} />
               ) : (
                 <EmptyChart message="No temperature data." />
               )}
-            </div>
+            </GlassCard>
 
-            {/* Stress distribution */}
-            <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-              <h2 className="mb-2 text-sm font-semibold text-gray-700 uppercase tracking-wide">
-                Stress distribution
-              </h2>
+            <GlassCard title="Stress Distribution" titleIcon={<TrendingUp size={14} />}>
               <StressDistributionPie data={serialisedReadings} />
-            </div>
+            </GlassCard>
           </div>
         </div>
 
-        {/* ── Heart Rate & SpO₂ chart ── */}
-        <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-          <h2 className="mb-4 text-sm font-semibold text-gray-700 uppercase tracking-wide">
-            Heart Rate &amp; SpO₂ over time
-          </h2>
+        <GlassCard title="Heart Rate & SpO₂" titleIcon={<Heart size={14} />}>
           <VitalsLineChart data={serialisedReadings} />
-        </div>
+        </GlassCard>
 
-        {/* ── GSR & Resistance chart ── */}
-        <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-          <h2 className="mb-4 text-sm font-semibold text-gray-700 uppercase tracking-wide">
-            GSR &amp; Resistance over time
-          </h2>
+        <GlassCard title="GSR Raw & GSR Delta" titleIcon={<Zap size={14} />}>
           <GsrLineChart data={serialisedReadings} />
-        </div>
+        </GlassCard>
 
         {/* ── Recent Readings Table ── */}
         <section>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-base font-semibold text-gray-800">Recent Readings</h2>
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-white/50">Recent Readings</h2>
             <Link
               href="/patient/dashboard/history"
-              className="text-xs font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
+              className="text-xs font-medium text-violet-400 hover:text-violet-300 transition-colors"
             >
               View full history →
             </Link>
           </div>
-          <ReadingsTable readings={serialisedReadings} pageSize={10} />
+          <div className="rounded-2xl overflow-hidden border border-white/8 bg-white/4 backdrop-blur-md">
+            <ReadingsTable readings={serialisedReadings} pageSize={10} />
+          </div>
         </section>
 
         {/* ── Evaluations ── */}
         <section>
-          <h2 className="mb-3 text-base font-semibold text-gray-800">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-white/50">
             Doctor Evaluations
           </h2>
           <EvaluationList evaluations={serialisedEvaluations} />
@@ -279,17 +315,61 @@ export default async function PatientDashboardPage({ searchParams }: PageProps) 
 
 function EmptyChart({ message }: { message: string }) {
   return (
-    <div className="flex h-50 items-center justify-center text-sm text-gray-400">
+    <div className="flex h-50 items-center justify-center text-sm text-white/30">
       {message}
     </div>
   );
 }
 
-function SummaryCard({ label, value, color }: { label: string; value: string; color: string }) {
+function GlassCard({
+  title,
+  titleIcon,
+  children,
+  className = '',
+}: {
+  title: string;
+  titleIcon?: React.ReactNode;
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
-    <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm flex flex-col gap-1">
-      <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{label}</span>
-      <span className={`text-xl font-bold tabular-nums ${color}`}>{value}</span>
+    <div className={`relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur-md ${className}`}>
+      <div className="mb-4 flex items-center gap-2">
+        {titleIcon && <span className="text-white/40">{titleIcon}</span>}
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-white/40">{title}</h2>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function MetricCard({
+  icon,
+  label,
+  value,
+  unit,
+  color,
+  ringClass,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  unit: string;
+  color: string;
+  ringClass: string;
+}) {
+  return (
+    <div className={`relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-md ring-1 ${ringClass}`}>
+      <div className="pointer-events-none absolute -top-4 -right-4 h-16 w-16 rounded-full blur-2xl opacity-25"
+        style={{ background: color }} />
+      <div className="mb-2 flex items-center gap-2">
+        <span style={{ color }}>{icon}</span>
+        <span className="text-xs font-medium uppercase tracking-wide text-white/50">{label}</span>
+      </div>
+      <p className="text-2xl font-bold tabular-nums text-white">
+        {value}
+        {unit && <span className="ml-1 text-sm font-normal text-white/30">{unit}</span>}
+      </p>
     </div>
   );
 }

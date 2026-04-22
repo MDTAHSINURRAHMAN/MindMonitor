@@ -15,7 +15,8 @@ import type { TooltipProps } from 'recharts';
 export interface GsrPoint {
   recordedAt: string;
   gsrRaw: number;
-  resistance: number;
+  gsrBaseline?: number | null;
+  gsrDiff?: number | null;
 }
 
 interface Props {
@@ -25,14 +26,11 @@ interface Props {
 function GsrTooltip({ active, payload, label }: TooltipProps<number, string>) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-md text-sm">
-      <p className="font-medium text-gray-700 mb-1">{label}</p>
+    <div className="rounded-xl border border-white/10 bg-gray-900/95 px-3 py-2 shadow-xl backdrop-blur-md text-sm">
+      <p className="font-medium text-white/70 mb-1">{label}</p>
       {payload.map((entry) => (
         <p key={entry.dataKey as string} style={{ color: entry.color }}>
-          {entry.name}:{' '}
-          {entry.dataKey === 'gsrRaw'
-            ? `${entry.value} raw`
-            : `${(entry.value as number)?.toFixed(1)} Ω`}
+          {entry.name}: {entry.value ?? '—'} raw
         </p>
       ))}
     </div>
@@ -45,13 +43,14 @@ export function GsrLineChart({ data }: Props) {
       hour: '2-digit',
       minute: '2-digit',
     }),
-    gsrRaw:     d.gsrRaw,
-    resistance: d.resistance,
+    gsrRaw:      d.gsrRaw,
+    gsrBaseline: d.gsrBaseline ?? null,
+    gsrDiff:     d.gsrDiff ?? null,
   }));
 
   if (formatted.length === 0) {
     return (
-      <div className="flex h-[220px] items-center justify-center text-sm text-gray-400">
+      <div className="flex h-55 items-center justify-center text-sm text-white/30">
         No GSR data in this period.
       </div>
     );
@@ -60,25 +59,18 @@ export function GsrLineChart({ data }: Props) {
   return (
     <ResponsiveContainer width="100%" height={220}>
       <LineChart data={formatted} margin={{ top: 8, right: 24, left: 0, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-        <XAxis dataKey="time" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
+        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+        <XAxis dataKey="time" tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.35)' }} interval="preserveStartEnd" axisLine={{ stroke: 'rgba(255,255,255,0.08)' }} tickLine={false} />
         <YAxis
-          yAxisId="raw"
-          tick={{ fontSize: 11 }}
+          tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.35)' }}
           width={44}
-          label={{ value: 'raw', angle: -90, position: 'insideLeft', offset: 10, style: { fontSize: 10, fill: '#9ca3af' } }}
-        />
-        <YAxis
-          yAxisId="res"
-          orientation="right"
-          tick={{ fontSize: 11 }}
-          width={48}
-          tickFormatter={(v: number) => `${v}Ω`}
+          axisLine={false}
+          tickLine={false}
+          label={{ value: 'raw', angle: -90, position: 'insideLeft', offset: 10, style: { fontSize: 10, fill: 'rgba(255,255,255,0.3)' } }}
         />
         <Tooltip content={<GsrTooltip />} />
-        <Legend wrapperStyle={{ fontSize: 12 }} />
+        <Legend wrapperStyle={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }} />
         <Line
-          yAxisId="raw"
           type="monotone"
           dataKey="gsrRaw"
           name="GSR Raw"
@@ -88,14 +80,25 @@ export function GsrLineChart({ data }: Props) {
           activeDot={{ r: 4 }}
         />
         <Line
-          yAxisId="res"
           type="monotone"
-          dataKey="resistance"
-          name="Resistance (Ω)"
+          dataKey="gsrBaseline"
+          name="GSR Baseline"
+          stroke="#6b7280"
+          dot={false}
+          strokeWidth={1.5}
+          strokeDasharray="4 3"
+          activeDot={{ r: 4 }}
+          connectNulls={false}
+        />
+        <Line
+          type="monotone"
+          dataKey="gsrDiff"
+          name="GSR Delta"
           stroke="#f59e0b"
           dot={false}
           strokeWidth={2}
           activeDot={{ r: 4 }}
+          connectNulls={false}
         />
       </LineChart>
     </ResponsiveContainer>

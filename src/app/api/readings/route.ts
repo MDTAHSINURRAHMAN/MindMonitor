@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
 
   const since = new Date(Date.now() - rangeMs);
   const readings = await prisma.sensorReading.findMany({
-    where: { patientId, recordedAt: { gte: since } },
+    where: { patientId, recordedAt: { gte: since }, deviceId: { not: null } },
     orderBy: { recordedAt: "asc" },
     select: {
       id: true,
@@ -53,7 +53,6 @@ export async function GET(req: NextRequest) {
       fingerDetected: true,
       skinDetected: true,
       sourceTimestampMs: true,
-      resistance: true,
       temperature: true,
       heartRate: true,
       spo2: true,
@@ -69,4 +68,5 @@ export async function GET(req: NextRequest) {
       sourceTimestampMs: r.sourceTimestampMs != null ? r.sourceTimestampMs.toString() : null,
     })),
   );
+
 }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { initialState, nextReading, toSensorReadingData } from '@/lib/fakeReading';
+import { initialState, nextReading } from '@/lib/fakeReading';
 
 const INTERVAL_MS = 2500;
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
@@ -58,15 +58,6 @@ export async function GET(
         }
 
         const reading = nextReading(state, patientId, sessionId);
-
-        // Persist reading to the SensorReading table
-        try {
-          await prisma.sensorReading.create({
-            data: { patientId, ...toSensorReadingData(reading) },
-          });
-        } catch {
-          // Don't abort the stream if a DB write fails
-        }
 
         send({ type: 'reading', data: reading });
       }

@@ -28,11 +28,11 @@ function PieTooltip({ active, payload }: TooltipProps<number, string>) {
   const total = innerPayload?.total ?? 0;
   const pct = total > 0 ? ((value / total) * 100).toFixed(1) : '0';
   return (
-    <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-md text-sm">
+    <div className="rounded-xl border border-white/10 bg-gray-900/95 px-3 py-2 shadow-xl backdrop-blur-md text-sm">
       <p className="font-medium" style={{ color: entry.color }}>
         {entry.name}
       </p>
-      <p className="text-gray-600">
+      <p className="text-white/50">
         {value} readings ({pct}%)
       </p>
     </div>
@@ -51,7 +51,7 @@ export function StressDistributionPie({ data }: Props) {
 
   if (!hasData) {
     return (
-      <div className="flex h-[200px] items-center justify-center text-sm text-gray-400">
+      <div className="flex h-50 items-center justify-center text-sm text-white/30">
         No readings yet
       </div>
     );
@@ -77,7 +77,7 @@ export function StressDistributionPie({ data }: Props) {
         <Legend
           iconType="circle"
           iconSize={10}
-          wrapperStyle={{ fontSize: 12 }}
+          wrapperStyle={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}
         />
       </PieChart>
     </ResponsiveContainer>

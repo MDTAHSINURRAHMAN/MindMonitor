@@ -44,7 +44,7 @@ export function TemperatureGauge({ value, min = 35, max = 40 }: Props) {
           >
             <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
             <RadialBar
-              background={{ fill: '#f1f5f9' }}
+              background={{ fill: 'rgba(255,255,255,0.06)' }}
               dataKey="value"
               cornerRadius={8}
             />
@@ -55,10 +55,10 @@ export function TemperatureGauge({ value, min = 35, max = 40 }: Props) {
           <span className="text-2xl font-bold" style={{ color }}>
             {value.toFixed(1)}°
           </span>
-          <span className="text-xs text-gray-500 mt-0.5">{label}</span>
+          <span className="text-xs text-white/40 mt-0.5">{label}</span>
         </div>
       </div>
-      <p className="mt-1 text-sm font-medium text-gray-600">Body Temperature</p>
+      <p className="mt-1 text-sm font-medium text-white/50">Body Temperature</p>
     </div>
   );
 }

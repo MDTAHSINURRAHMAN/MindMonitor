@@ -22,9 +22,6 @@ export type RawFirebaseReading = {
   recordedAt?: string;
 };
 
-type HistoryNode = Record<string, Record<string, RawFirebaseReading> | null>;
-type LiveNode = Record<string, RawFirebaseReading | null>;
-
 function toNumber(value: unknown): number | null {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
   if (typeof value === 'string' && value.trim().length > 0) {
@@ -37,7 +34,9 @@ function toNumber(value: unknown): number | null {
 function toDate(value: RawFirebaseReading): Date | null {
   const ts = toNumber(value.timeStampMs ?? value.timestampMs);
   if (ts && ts > 0) {
-    // ESP8266 may send uptime milliseconds instead of Unix epoch milliseconds.
+    // ESP8266 sends millis() (device uptime) not Unix epoch — ts < 1 trillion.
+    // Use current wall-clock time as a best-effort recordedAt; dedup is done by
+    // sourceTimestampMs (the uptime value itself), NOT by recordedAt.
     if (ts < 1_000_000_000_000) {
       return new Date();
     }
@@ -72,14 +71,8 @@ function stressLabelFromLevel(level: number): string {
   return 'Normal';
 }
 
-function resistanceFromRaw(raw: RawFirebaseReading, gsrRaw: number): number {
-  const baseline = toNumber(raw.gsrBaseline) ?? 500;
-  const safeGsr = Math.max(1, gsrRaw);
-  const approx = ((baseline - safeGsr) / safeGsr) * 100;
-  return Number.isFinite(approx) ? Number(approx.toFixed(2)) : 0;
-}
-
-function makeDedupKey(input: {
+// Fallback dedup key used only when sourceTimestampMs is absent.
+function makeHashDedupKey(input: {
   recordedAt: Date;
   gsrRaw: number;
   temperature: number;
@@ -95,9 +88,7 @@ function makeDedupKey(input: {
 }
 
 export function normaliseFirebaseReading(raw: RawFirebaseReading, patientId: string) {
-  // Reject only when patientId is explicitly present but belongs to a different patient.
-  // If the ESP omits patientId entirely we accept the reading and attribute it to the
-  // patient whose session context we're operating in.
+  // Reject when patientId is explicitly present but belongs to a different patient.
   if (raw.patientId && raw.patientId !== patientId) return null;
 
   const recordedAt = toDate(raw);
@@ -123,7 +114,6 @@ export function normaliseFirebaseReading(raw: RawFirebaseReading, patientId: str
     deviceId: raw.deviceId ?? null,
     recordedAt,
     gsrRaw: Math.max(0, Math.round(gsrRaw)),
-    resistance: resistanceFromRaw(raw, gsrRaw),
     stressLevel,
     stressLabel: stressLabelFromLevel(stressLevel),
     temperature,
@@ -151,37 +141,39 @@ export async function ingestFirebaseReadingForPatient(
   const mapped = normaliseFirebaseReading(raw, patientId);
   if (!mapped) return { inserted: false };
 
-  const existing = await prisma.sensorReading.findMany({
-    where: {
-      patientId,
-      recordedAt: {
-        gte: new Date(mapped.recordedAt.getTime() - 1000),
-        lte: new Date(mapped.recordedAt.getTime() + 1000),
+  // Primary dedup: stable across refreshes — (sessionId, sourceTimestampMs).
+  // Falls back to hash-based dedup only when sourceTimestampMs is absent.
+  if (mapped.sourceTimestampMs !== null && mapped.sessionId) {
+    const exists = await prisma.sensorReading.findFirst({
+      where: { patientId, sessionId: mapped.sessionId, sourceTimestampMs: mapped.sourceTimestampMs },
+      select: { id: true },
+    });
+    if (exists) return { inserted: false };
+  } else {
+    const nearby = await prisma.sensorReading.findMany({
+      where: {
+        patientId,
+        recordedAt: {
+          gte: new Date(mapped.recordedAt.getTime() - 1000),
+          lte: new Date(mapped.recordedAt.getTime() + 1000),
+        },
       },
-    },
-    select: {
-      recordedAt: true,
-      gsrRaw: true,
-      temperature: true,
-      heartRate: true,
-      spo2: true,
-      stressLevel: true,
-    },
-  });
+      select: { recordedAt: true, gsrRaw: true, temperature: true, heartRate: true, spo2: true, stressLevel: true },
+    });
 
-  const incomingKey = makeDedupKey(mapped);
-  const alreadyExists = existing.some((item) =>
-    makeDedupKey({
-      recordedAt: item.recordedAt,
-      gsrRaw: item.gsrRaw,
-      temperature: item.temperature,
-      heartRate: item.heartRate,
-      spo2: item.spo2,
-      stressLevel: item.stressLevel,
-    }) === incomingKey,
-  );
-
-  if (alreadyExists) return { inserted: false };
+    const incomingKey = makeHashDedupKey(mapped);
+    const alreadyExists = nearby.some((item) =>
+      makeHashDedupKey({
+        recordedAt: item.recordedAt,
+        gsrRaw: item.gsrRaw,
+        temperature: item.temperature,
+        heartRate: item.heartRate,
+        spo2: item.spo2,
+        stressLevel: item.stressLevel,
+      }) === incomingKey,
+    );
+    if (alreadyExists) return { inserted: false };
+  }
 
   await prisma.sensorReading.create({ data: mapped });
   return { inserted: true };
@@ -191,105 +183,122 @@ export async function syncFirebaseReadingsForPatient(patientId: string): Promise
   const user = await prisma.user.findUnique({ where: { id: patientId }, select: { id: true } });
   if (!user) return { inserted: 0 };
 
-  const [history, live] = await Promise.all([
-    rtdbGet<HistoryNode>('history/readings'),
-    rtdbGet<LiveNode>('live/current'),
-  ]);
+  const sessions = await prisma.monitoringSession.findMany({
+    where: { patientId },
+    select: { id: true, status: true },
+    orderBy: { startedAt: 'desc' },
+    take: 50,
+  });
 
-  const incoming: Array<{
-    patientId: string;
-    sessionId: string | null;
-    deviceId: string | null;
-    recordedAt: Date;
-    gsrRaw: number;
-    resistance: number;
-    stressLevel: number;
-    stressLabel: string;
-    temperature: number;
-    heartRate: number | null;
-    spo2: number | null;
-    gsrBaseline: number | null;
-    gsrDiff: number | null;
-    ir: number | null;
-    red: number | null;
-    fingerDetected: boolean | null;
-    skinDetected: boolean | null;
-    stressScore: number | null;
-    status: string | null;
-    sourceTimestampMs: bigint | null;
-  }> = [];
+  if (sessions.length === 0) return { inserted: 0 };
 
-  if (history) {
-    for (const sessionReadings of Object.values(history)) {
-      if (!sessionReadings) continue;
-      for (const raw of Object.values(sessionReadings)) {
-        if (!raw) continue;
-        const mapped = normaliseFirebaseReading(raw, patientId);
-        if (mapped) incoming.push(mapped);
-      }
-    }
-  }
+  const sessionIds = sessions.map((s) => s.id);
+  const activeSessionId = sessions.find((s) => s.status === 'ACTIVE')?.id ?? null;
 
-  if (live) {
-    for (const raw of Object.values(live)) {
+  const historyResults = await Promise.all(
+    sessions.map((s) =>
+      rtdbGet<Record<string, RawFirebaseReading>>(`history/readings/${s.id}`)
+        .then((data) => ({ data })),
+    ),
+  );
+
+  type MappedReading = NonNullable<ReturnType<typeof normaliseFirebaseReading>>;
+  const incoming: MappedReading[] = [];
+
+  for (const { data: sessionReadings } of historyResults) {
+    if (!sessionReadings) continue;
+    for (const raw of Object.values(sessionReadings)) {
       if (!raw) continue;
       const mapped = normaliseFirebaseReading(raw, patientId);
       if (mapped) incoming.push(mapped);
     }
   }
 
-  if (incoming.length === 0) return { inserted: 0 };
-
-  let minTs = incoming[0].recordedAt;
-  let maxTs = incoming[0].recordedAt;
-  for (const item of incoming) {
-    if (item.recordedAt < minTs) minTs = item.recordedAt;
-    if (item.recordedAt > maxTs) maxTs = item.recordedAt;
-  }
-
-  const existing = await prisma.sensorReading.findMany({
-    where: {
-      patientId,
-      recordedAt: {
-        gte: new Date(minTs.getTime() - 1000),
-        lte: new Date(maxTs.getTime() + 1000),
-      },
-    },
-    select: {
-      recordedAt: true,
-      gsrRaw: true,
-      temperature: true,
-      heartRate: true,
-      spo2: true,
-      stressLevel: true,
-    },
-  });
-
-  const existingKeys = new Set(
-    existing.map((item) =>
-      makeDedupKey({
-        recordedAt: item.recordedAt,
-        gsrRaw: item.gsrRaw,
-        temperature: item.temperature,
-        heartRate: item.heartRate,
-        spo2: item.spo2,
-        stressLevel: item.stressLevel,
-      }),
-    ),
-  );
-
-  const uniqueIncoming = new Map<string, (typeof incoming)[number]>();
-  for (const item of incoming) {
-    const key = makeDedupKey(item);
-    if (!existingKeys.has(key)) {
-      uniqueIncoming.set(key, item);
+  if (activeSessionId) {
+    const liveRaw = await rtdbGet<RawFirebaseReading>(`live/current/${activeSessionId}`);
+    if (liveRaw) {
+      const mapped = normaliseFirebaseReading(liveRaw, patientId);
+      if (mapped) incoming.push(mapped);
     }
   }
 
-  const toInsert = Array.from(uniqueIncoming.values());
+  if (incoming.length === 0) return { inserted: 0 };
+
+  // --- Primary dedup: (sessionId, sourceTimestampMs) ---
+  // Fetch all existing stable keys for this patient's sessions in one query.
+  const existingTs = await prisma.sensorReading.findMany({
+    where: {
+      patientId,
+      sessionId: { in: sessionIds },
+      sourceTimestampMs: { not: null },
+    },
+    select: { sessionId: true, sourceTimestampMs: true },
+  });
+
+  const existingTsSet = new Set(
+    existingTs.map((r) => `${r.sessionId}|${r.sourceTimestampMs!.toString()}`),
+  );
+
+  // Separate readings into those we can dedup by sourceTimestampMs and those we can't.
+  const tsDeduped: MappedReading[] = [];
+  const needsHashDedup: MappedReading[] = [];
+
+  for (const item of incoming) {
+    if (item.sourceTimestampMs !== null && item.sessionId) {
+      const key = `${item.sessionId}|${item.sourceTimestampMs.toString()}`;
+      if (!existingTsSet.has(key)) {
+        tsDeduped.push(item);
+        existingTsSet.add(key); // prevent duplicates within this same batch
+      }
+    } else {
+      needsHashDedup.push(item);
+    }
+  }
+
+  // --- Fallback hash-based dedup for readings without sourceTimestampMs ---
+  let hashDeduped: MappedReading[] = [];
+  if (needsHashDedup.length > 0) {
+    let minTs = needsHashDedup[0].recordedAt;
+    let maxTs = needsHashDedup[0].recordedAt;
+    for (const item of needsHashDedup) {
+      if (item.recordedAt < minTs) minTs = item.recordedAt;
+      if (item.recordedAt > maxTs) maxTs = item.recordedAt;
+    }
+
+    const existingHash = await prisma.sensorReading.findMany({
+      where: {
+        patientId,
+        recordedAt: {
+          gte: new Date(minTs.getTime() - 1000),
+          lte: new Date(maxTs.getTime() + 1000),
+        },
+      },
+      select: { recordedAt: true, gsrRaw: true, temperature: true, heartRate: true, spo2: true, stressLevel: true },
+    });
+
+    const existingHashKeys = new Set(existingHash.map((item) => makeHashDedupKey({
+      recordedAt: item.recordedAt,
+      gsrRaw: item.gsrRaw,
+      temperature: item.temperature,
+      heartRate: item.heartRate,
+      spo2: item.spo2,
+      stressLevel: item.stressLevel,
+    })));
+
+    const seenHashKeys = new Set<string>();
+    for (const item of needsHashDedup) {
+      const key = makeHashDedupKey(item);
+      if (!existingHashKeys.has(key) && !seenHashKeys.has(key)) {
+        hashDeduped.push(item);
+        seenHashKeys.add(key);
+      }
+    }
+  }
+
+  const toInsert = [...tsDeduped, ...hashDeduped];
   if (toInsert.length === 0) return { inserted: 0 };
 
-  const result = await prisma.sensorReading.createMany({ data: toInsert });
+  const result = await prisma.sensorReading.createMany({ data: toInsert, skipDuplicates: true });
   return { inserted: result.count };
 }
 
