@@ -261,7 +261,7 @@ export default function RegisterPage() {
               transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
             />
           </motion.div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">MindGuard</h1>
+          <h1 className="text-2xl font-bold text-white tracking-tight">MindMonitor</h1>
           <p className="text-sm text-white/40 mt-1 tracking-wide">Mental Health Monitoring Platform</p>
         </motion.div>
 
@@ -287,7 +287,7 @@ export default function RegisterPage() {
               <UserPlus className="w-3 h-3" />
               Create Account
             </div>
-            <h2 className="text-2xl font-bold text-white leading-tight">Join MindGuard</h2>
+            <h2 className="text-2xl font-bold text-white leading-tight">Join MindMonitor</h2>
             <p className="text-sm text-white/40 mt-1">Set up your account in seconds</p>
           </motion.div>
 

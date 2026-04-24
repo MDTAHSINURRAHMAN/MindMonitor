@@ -198,7 +198,7 @@ function LoginForm() {
               transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
             />
           </motion.div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">MindGuard</h1>
+          <h1 className="text-2xl font-bold text-white tracking-tight">MindMonitor</h1>
           <p className="text-sm text-white/40 mt-1 tracking-wide">Mental Health Monitoring Platform</p>
         </motion.div>
 
@@ -225,7 +225,7 @@ function LoginForm() {
               Secure Sign-in
             </div>
             <h2 className="text-2xl font-bold text-white leading-tight">Welcome back</h2>
-            <p className="text-sm text-white/40 mt-1">Sign in to your MindGuard account</p>
+            <p className="text-sm text-white/40 mt-1">Sign in to your MindMonitor account</p>
           </motion.div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -346,7 +346,7 @@ function LoginForm() {
           {/* Divider */}
           <div className="mt-7 flex items-center gap-4">
             <div className="flex-1 h-px bg-white/8" />
-            <span className="text-xs text-white/25 whitespace-nowrap">New to MindGuard?</span>
+            <span className="text-xs text-white/25 whitespace-nowrap">New to MindMonitor?</span>
             <div className="flex-1 h-px bg-white/8" />
           </div>
 

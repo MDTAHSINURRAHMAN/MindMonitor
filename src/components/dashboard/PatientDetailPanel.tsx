@@ -5,7 +5,9 @@ import {
   RefreshCw, TrendingUp, ClipboardList,
   Activity, Thermometer, Heart, Zap, Table2,
   PlusCircle, Clock, Video, X, PhoneCall, CalendarPlus, Calendar,
+  Loader2, FileText,
 } from 'lucide-react';
+import Link from 'next/link';
 
 import { LiveReadingCard }       from './LiveReadingCard';
 import { EvaluationList }        from './EvaluationList';
@@ -177,6 +179,30 @@ export function PatientDetailPanel({ patient, doctorId }: Props) {
   const [activeTab, setActiveTab]             = useState<ActiveTab>('history');
   const [showScheduler, setShowScheduler]     = useState(false);
   const [activeCall, setActiveCall]           = useState<Appointment | null>(null);
+  const [instantCallLoading, setInstantCallLoading] = useState(false);
+
+  async function handleInstantCall() {
+    setInstantCallLoading(true);
+    try {
+      const createRes = await fetch('/api/appointments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patientId: patient.id,
+          doctorId,
+          scheduledAt: new Date().toISOString(),
+        }),
+      });
+      if (!createRes.ok) throw new Error('Failed to create call');
+      const appt: Appointment = await createRes.json();
+      const updated = await patchAppointment(appt.id, 'ACTIVE');
+      setActiveCall(updated);
+    } catch {
+      // silent
+    } finally {
+      setInstantCallLoading(false);
+    }
+  }
 
   const fetchReadings = useCallback(async () => {
     setLoadingReadings(true);
@@ -334,22 +360,32 @@ export function PatientDetailPanel({ patient, doctorId }: Props) {
         </div>
 
         {/* Actions */}
-        <div className="flex flex-col items-end gap-2 shrink-0 relative">
-          {stats && (
-            <div className="hidden sm:flex flex-col items-end gap-1 text-right">
-              <span className="text-xs text-white/30">{stats.total} readings</span>
-              <span className={`text-xs font-semibold ${stressPctStatus(stats.highStressPct) === 'danger' ? 'text-rose-400' : stressPctStatus(stats.highStressPct) === 'warn' ? 'text-amber-400' : 'text-white/40'}`}>
-                {stats.highStressPct}% high stress
-              </span>
-            </div>
-          )}
+        <div className="flex flex-row flex-wrap items-center justify-end gap-2 shrink-0 relative">
+          <button
+            onClick={handleInstantCall}
+            disabled={instantCallLoading}
+            className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-500 disabled:opacity-60 transition-colors shadow-lg shadow-emerald-900/40"
+          >
+            {instantCallLoading
+              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              : <PhoneCall className="h-3.5 w-3.5" />
+            }
+            {instantCallLoading ? 'Connecting…' : 'Start Call Now'}
+          </button>
           <button
             onClick={() => setShowScheduler(true)}
-            className="flex items-center gap-1.5 rounded-xl bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-violet-500 transition-colors shadow-lg shadow-violet-900/40"
+            className="flex items-center gap-1.5 rounded-xl bg-violet-600 px-3 py-2 text-xs font-semibold text-white hover:bg-violet-500 transition-colors shadow-lg shadow-violet-900/40"
           >
             <CalendarPlus className="h-3.5 w-3.5" />
             Schedule Call
           </button>
+          <Link
+            href={`/doctor/dashboard/evaluate?patientId=${patient.id}`}
+            className="flex items-center gap-1.5 rounded-xl border border-white/15 bg-white/8 px-3 py-2 text-xs font-semibold text-white/70 hover:bg-white/12 hover:text-white transition-colors"
+          >
+            <FileText className="h-3.5 w-3.5" />
+            Write Evaluation
+          </Link>
         </div>
       </div>
 
@@ -511,7 +547,7 @@ export function PatientDetailPanel({ patient, doctorId }: Props) {
                 </button>
               </div>
             ) : (
-              <EvaluationList evaluations={evaluations} />
+              <EvaluationList evaluations={evaluations} patientName={patient.name} />
             )
           )}
 

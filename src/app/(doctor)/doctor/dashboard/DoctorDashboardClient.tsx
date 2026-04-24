@@ -2,11 +2,12 @@
 
 import { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
+import Link from 'next/link';
 import { PatientListSidebar } from '@/components/dashboard/PatientListSidebar';
 import { PatientDetailPanel } from '@/components/dashboard/PatientDetailPanel';
 import { AlertFeed }          from '@/components/dashboard/AlertFeed';
 import type { PatientSummary } from '@/components/dashboard/PatientListSidebar';
-import { Bell, Users, AlertTriangle, Activity, BrainCircuit } from 'lucide-react';
+import { Bell, Users, AlertTriangle, Activity, BrainCircuit, FileText } from 'lucide-react';
 
 interface Props {
   doctorId: string;
@@ -88,6 +89,15 @@ export function DoctorDashboardClient({ doctorId, doctorName }: Props) {
             )}
           </div>
         </div>
+
+        {/* Write Evaluation link */}
+        <Link
+          href={selectedPatient ? `/doctor/dashboard/evaluate?patientId=${selectedPatient.id}` : '/doctor/dashboard/evaluate'}
+          className="hidden md:flex items-center gap-1.5 rounded-lg border border-violet-500/25 bg-violet-500/10 px-3 py-1.5 text-xs font-medium text-violet-300 hover:bg-violet-500/20 transition-all"
+        >
+          <FileText className="h-3.5 w-3.5" />
+          Write Evaluation
+        </Link>
 
         {/* Panel toggle */}
         <div className="flex items-center gap-1 rounded-xl bg-white/5 border border-white/10 p-1">

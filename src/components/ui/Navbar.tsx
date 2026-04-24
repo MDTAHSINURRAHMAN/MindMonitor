@@ -204,7 +204,7 @@ export function Navbar() {
               />
             </motion.div>
             <span className="hidden text-sm font-bold tracking-wide text-white group-hover:text-violet-200 transition-colors sm:block">
-              MindGuard
+              MindMonitor
             </span>
           </Link>
 

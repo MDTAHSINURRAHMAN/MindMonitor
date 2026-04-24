@@ -305,7 +305,7 @@ export default async function PatientDashboardPage({ searchParams }: PageProps) 
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-white/50">
             Doctor Evaluations
           </h2>
-          <EvaluationList evaluations={serialisedEvaluations} />
+          <EvaluationList evaluations={serialisedEvaluations} patientName={dbUser?.name ?? 'Patient'} />
         </section>
 
       </div>
