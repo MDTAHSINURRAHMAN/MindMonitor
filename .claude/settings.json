@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(xargs grep *)"
+      "Bash(xargs grep *)",
+      "Bash(where pdflatex *)",
+      "Bash(npm install *)",
+      "Bash(Remove-Item \"e:\\\\mental-health-monitor\\\\firebaseConfig.js\")"
     ],
     "additionalDirectories": [
       "e:\\mental-health-monitor\\src\\app\\api\\appointments"

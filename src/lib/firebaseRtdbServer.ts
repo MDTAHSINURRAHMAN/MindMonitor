@@ -1,7 +1,6 @@
 const FIREBASE_DB_URL =
   process.env.FIREBASE_DB_URL ??
-  process.env.NEXT_PUBLIC_FIREBASE_DB_URL ??
-  'https://mindmonitor-2c5f1-default-rtdb.asia-southeast1.firebasedatabase.app';
+  process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL ?? '';
 
 const FIREBASE_AUTH = process.env.FIREBASE_AUTH ?? process.env.FIREBASE_DB_AUTH ?? '';
 

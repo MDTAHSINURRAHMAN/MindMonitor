@@ -19,7 +19,7 @@ const char* WIFI_SSID     = "Anirban";
 const char* WIFI_PASSWORD = "22889933@";
 
 // ---- Firebase Realtime Database ----
-const char* FIREBASE_DB_URL = "https://mindmonitor-2c5f1-default-rtdb.asia-southeast1.firebasedatabase.app";
+const char* FIREBASE_DB_URL = "https://mindmonitor-f94fd-default-rtdb.asia-southeast1.firebasedatabase.app";
 const char* FIREBASE_AUTH   = "";
 const char* DEVICE_ID       = "esp8266-01";
 
