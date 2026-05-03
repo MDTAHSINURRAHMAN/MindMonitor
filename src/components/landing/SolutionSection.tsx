@@ -7,7 +7,6 @@ import {
   ChartLine,
   CircuitBoard,
   Cloud,
-  Cpu,
   Database,
   Stethoscope,
   Wifi,
@@ -109,11 +108,11 @@ function FeatureCard({
 // Architecture flow diagram (SVG-based)
 // ─────────────────────────────────────────────────────────────
 const ARCH_NODES = [
-  { label: 'Arduino\nSensors', icon: CircuitBoard, color: '#f43f5e', x: 10 },
+  { label: 'Arduino\nUno', icon: CircuitBoard, color: '#f43f5e', x: 10 },
   { label: 'ESP8266\nWi-Fi', icon: Wifi, color: '#f97316', x: 27.5 },
-  { label: 'FastAPI\nBackend', icon: Cpu, color: '#a855f7', x: 45 },
-  { label: 'PostgreSQL\n+ TimescaleDB', icon: Database, color: '#38bdf8', x: 62.5 },
-  { label: 'React\nDashboard', icon: Activity, color: '#10b981', x: 80 },
+  { label: 'Firebase\nRTDB', icon: Cloud, color: '#a855f7', x: 45 },
+  { label: 'Supabase\nPostgreSQL', icon: Database, color: '#38bdf8', x: 62.5 },
+  { label: 'Next.js\nDashboard', icon: Activity, color: '#10b981', x: 80 },
 ] as const;
 
 function ArchDiagram() {
@@ -178,11 +177,11 @@ function ArchDiagram() {
 // Data
 // ─────────────────────────────────────────────────────────────
 const TECH_STACK = [
-  { icon: CircuitBoard, label: 'Arduino Sensors' },
+  { icon: CircuitBoard, label: 'Arduino Uno' },
   { icon: Wifi,         label: 'ESP8266 Wi-Fi' },
-  { icon: Cpu,          label: 'FastAPI Backend' },
-  { icon: Database,     label: 'PostgreSQL + TimescaleDB' },
-  { icon: Activity,     label: 'React Dashboards' },
+  { icon: Cloud,        label: 'Firebase RTDB' },
+  { icon: Database,     label: 'Supabase' },
+  { icon: Activity,     label: 'Next.js Dashboard' },
 ] as const;
 
 const FEATURES: Omit<FeatureCardProps, 'index'>[] = [
@@ -201,8 +200,8 @@ const FEATURES: Omit<FeatureCardProps, 'index'>[] = [
     ring:   'ring-sky-500/25',
     glow:   'rgba(56,189,248,0.13)',
     number: '02',
-    title:  'Cloud-Based Health Analytics',
-    body:   'A FastAPI backend processes incoming sensor streams, applies anomaly detection algorithms, and stores time-series data in PostgreSQL with TimescaleDB for long-term compression and fast range queries.',
+    title:  'Real-Time Cloud Infrastructure',
+    body:   'Sensor payloads stream instantly into Firebase Realtime Database for live updates. Supabase PostgreSQL persists structured health records with Prisma ORM, enabling fast queries and long-term trend analysis.',
   },
   {
     icon:   Stethoscope,

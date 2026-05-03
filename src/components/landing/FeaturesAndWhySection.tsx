@@ -4,14 +4,18 @@ import { motion } from 'framer-motion';
 import {
   Activity,
   Bell,
+  Bot,
   BrainCircuit,
   ChartLine,
+  ClipboardCheck,
   ClipboardList,
   Droplets,
+  FileDown,
   LayoutDashboard,
   Radio,
   Stethoscope,
   Thermometer,
+  Video,
   Zap,
 } from 'lucide-react';
 
@@ -59,13 +63,37 @@ const FEATURES = [
     icon:   ChartLine,
     accent: '#06b6d4',
     title:  'Historical Trend Analysis',
-    body:   'Time-series charts powered by TimescaleDB reveal longitudinal stress patterns and recovery trajectories to inform clinical decisions.',
+    body:   'Time-series charts powered by Supabase reveal longitudinal stress patterns and recovery trajectories to inform clinical decisions.',
   },
   {
     icon:   Bell,
     accent: '#ec4899',
     title:  'Smart Alerts',
     body:   'Automated anomaly detection triggers instant notifications when physiological readings exceed baseline thresholds, enabling proactive care.',
+  },
+  {
+    icon:   Video,
+    accent: '#38bdf8',
+    title:  'Video Consultations',
+    body:   'ZegoUIKit-powered one-click video calls connect patients and doctors for real-time consultations — no extra app needed.',
+  },
+  {
+    icon:   Bot,
+    accent: '#f43f5e',
+    title:  'AI Health Assistant',
+    body:   'Claude-powered AI analyzes physiological trends, answers health questions, and surfaces anomalies with clinically-informed explanations.',
+  },
+  {
+    icon:   ClipboardCheck,
+    accent: '#a855f7',
+    title:  'Clinical Evaluations',
+    body:   'Doctors complete structured assessment forms linked to patient sensor history — capturing context alongside objective biomarkers.',
+  },
+  {
+    icon:   FileDown,
+    accent: '#eab308',
+    title:  'PDF Health Reports',
+    body:   'One-click export generates formatted PDF reports with vitals summaries, evaluation scores, and trend charts for clinical records.',
   },
 ] as const;
 
@@ -177,7 +205,7 @@ export function FeaturesSection() {
             transition={{ duration: 0.5, delay: 0.16 }}
             className="mt-4 max-w-lg text-base leading-relaxed text-white/45"
           >
-            Eight capabilities working in concert to deliver a complete picture
+            Twelve capabilities working in concert to deliver a complete picture
             of a patient&apos;s physiological and psychological state — around the clock.
           </motion.p>
         </div>
@@ -211,15 +239,15 @@ const PATIENT_POINTS = [
   {
     icon:   ChartLine,
     title:  'Better Mental Health Awareness',
-    body:   'Patients gain access to personal trend charts and weekly summaries, building self-awareness and encouraging healthier coping strategies.',
+    body:   'Personal trend charts, AI-driven insights, and downloadable PDF reports build self-awareness and encourage healthier coping strategies.',
   },
 ] as const;
 
 const DOCTOR_POINTS = [
   {
     icon:   LayoutDashboard,
-    title:  'Remote Monitoring',
-    body:   'A dedicated clinical dashboard surfaces live vitals for all assigned patients, enabling oversight without requiring physical presence.',
+    title:  'Remote Monitoring & Video Calls',
+    body:   'A dedicated clinical dashboard surfaces live vitals for all assigned patients. ZegoUIKit video consultations let doctors connect face-to-face without a third-party app.',
   },
   {
     icon:   Zap,
@@ -229,7 +257,7 @@ const DOCTOR_POINTS = [
   {
     icon:   Stethoscope,
     title:  'Faster Clinical Decisions',
-    body:   'Smart alerts and anomaly flags surface critical changes instantly, compressing the time between detection and therapeutic response.',
+    body:   'Smart alerts, structured clinical evaluations, and AI-assisted analysis compress the time between physiological change detection and therapeutic response.',
   },
 ] as const;
 

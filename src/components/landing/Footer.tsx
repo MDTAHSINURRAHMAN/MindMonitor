@@ -12,11 +12,12 @@ const NAV_LINKS = [
 ] as const;
 
 const TECH_ITEMS = [
-  'Arduino & ESP8266',
-  'FastAPI Backend',
-  'PostgreSQL + TimescaleDB',
-  'Next.js Dashboard',
-  'Real-Time IoT Pipeline',
+  'Arduino Uno & ESP8266',
+  'Firebase RTDB',
+  'Supabase + Prisma',
+  'ZegoUIKit Video Calls',
+  'Claude AI Assistant',
+  'Next.js App Router',
 ] as const;
 
 export function Footer() {

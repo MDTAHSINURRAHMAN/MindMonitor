@@ -69,6 +69,10 @@ function getEmailPrefix(email: string) {
   return email.split('@')[0];
 }
 
+function displayName(name: string) {
+  return name.includes('@') ? name.split('@')[0] : name;
+}
+
 // ──────────────────────────────────────────────
 // Component
 // ──────────────────────────────────────────────
@@ -177,8 +181,8 @@ export function Navbar() {
       <nav
         className={`sticky top-0 z-50 w-full transition-all duration-300 ${
           scrolled
-            ? 'border-b border-white/10 bg-gray-950 shadow-[0_8px_32px_rgba(0,0,0,0.4)] backdrop-blur-2xl'
-            : 'border-b border-white/[0.07] bg-gray-950 backdrop-blur-xl'
+            ? 'border-b border-white/10 bg-gray-950/80 shadow-[0_8px_32px_rgba(0,0,0,0.4)] backdrop-blur-2xl'
+            : 'border-b border-white/[0.07] bg-gray-950/60 backdrop-blur-xl'
         }`}
       >
         {/* subtle top accent line */}
@@ -211,7 +215,7 @@ export function Navbar() {
           {/* ── Desktop Nav Links ──────────────────── */}
           <div className="hidden items-center gap-1 md:flex">
             {navLinks.map((link) => {
-              const active = pathname === link.href || pathname.startsWith(link.href + '/');
+              const active = pathname === link.href;
               return (
                 <Link
                   key={link.href + link.label}
@@ -275,7 +279,7 @@ export function Navbar() {
                     {getInitials(user.name)}
                   </span>
                 )}
-                <span className="hidden max-w-28 truncate text-sm font-medium sm:block">{user.name}</span>
+                <span className="hidden max-w-28 truncate text-sm font-medium sm:block">{displayName(user.name)}</span>
                 <motion.div animate={{ rotate: dropdownOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
                   <ChevronDown size={13} />
                 </motion.div>
@@ -301,7 +305,7 @@ export function Navbar() {
                           {getInitials(user.name)}
                         </span>
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-white">{user.name}</p>
+                          <p className="truncate text-sm font-semibold text-white">{displayName(user.name)}</p>
                           <p className="truncate text-xs text-white/40">{getEmailPrefix(user.email)}</p>
                         </div>
                       </div>
@@ -366,7 +370,7 @@ export function Navbar() {
           >
             <div className="px-4 pb-5 pt-3 flex flex-col gap-1">
               {navLinks.map((link, i) => {
-                const active = pathname === link.href || pathname.startsWith(link.href + '/');
+                const active = pathname === link.href;
                 return (
                   <motion.div
                     key={link.href + link.label}
@@ -398,7 +402,7 @@ export function Navbar() {
                   {getInitials(user.name)}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-white">{user.name}</p>
+                  <p className="truncate text-sm font-semibold text-white">{displayName(user.name)}</p>
                   <p className="truncate text-xs text-white/40">{getEmailPrefix(user.email)}</p>
                 </div>
                 <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${roleAccent.bg} ${roleAccent.text} ${roleAccent.ring}`}>

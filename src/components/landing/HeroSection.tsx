@@ -306,9 +306,9 @@ export function HeroSection() {
             transition={{ duration: 0.6, delay: 0.22 }}
             className="mb-10 max-w-lg text-base leading-relaxed text-white/55 sm:text-lg"
           >
-            A smart healthcare platform that uses physiological sensors, cloud
-            analytics, and real-time dashboards to monitor stress indicators
-            and support early mental health intervention.
+            A smart healthcare platform combining Arduino sensors, Firebase RTDB,
+            Supabase, AI-driven analysis, and ZegoUIKit video consultations to
+            monitor stress and support early mental health intervention.
           </motion.p>
 
           {/* CTA buttons */}
@@ -343,9 +343,10 @@ export function HeroSection() {
             className="mt-12 flex flex-wrap items-center justify-center gap-8 lg:justify-start"
           >
             {[
-              { value: '< 2s', label: 'Reading Latency' },
-              { value: '24 / 7', label: 'Live Monitoring' },
-              { value: '4+', label: 'Sensor Metrics' },
+              { value: '< 2s',  label: 'Reading Latency' },
+              { value: '24/7',  label: 'Live Monitoring' },
+              { value: '4+',    label: 'Sensor Metrics' },
+              { value: 'AI',    label: 'Health Assistant' },
             ].map((stat) => (
               <div key={stat.label} className="flex flex-col items-center lg:items-start">
                 <span className="text-xl font-bold text-white">{stat.value}</span>

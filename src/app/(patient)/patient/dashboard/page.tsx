@@ -17,7 +17,6 @@ import { EvaluationList }         from '@/components/dashboard/EvaluationList';
 import { DateRangePicker }        from '@/components/dashboard/DateRangePicker';
 import { ReadingsTable }          from '@/components/dashboard/ReadingsTable';
 import { UpcomingAppointments }   from '@/components/dashboard/UpcomingAppointments';
-import { MindMonitorAI }          from '@/components/dashboard/MindMonitorAI';
 import Link                       from 'next/link';
 
 const RANGE_MS: Record<string, number> = {
@@ -311,7 +310,6 @@ export default async function PatientDashboardPage({ searchParams }: PageProps) 
 
       </div>
 
-      <MindMonitorAI latestReading={latest} />
     </main>
   );
 }
