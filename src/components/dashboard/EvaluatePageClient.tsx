@@ -101,7 +101,7 @@ export function EvaluatePageClient({ doctorId, doctorName, patients, preselected
         style={{ background: 'rgba(56,189,248,0.4)' }} />
 
       {/* Header */}
-      <header className="relative z-10 flex items-center justify-between border-b border-white/8 bg-gray-950/80 px-6 py-3 backdrop-blur-xl shadow-[0_4px_24px_rgba(0,0,0,0.4)]">
+      {/* <header className="relative z-10 flex items-center justify-between border-b border-white/8 bg-gray-950/80 px-6 py-3 backdrop-blur-xl shadow-[0_4px_24px_rgba(0,0,0,0.4)]">
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-violet-500/40 to-transparent" />
 
         <div className="flex items-center gap-4">
@@ -123,7 +123,7 @@ export function EvaluatePageClient({ doctorId, doctorName, patients, preselected
             </div>
           </div>
         </div>
-      </header>
+      </header> */}
 
       {/* Content */}
       <div className="relative z-10 mx-auto max-w-2xl px-4 py-8">
